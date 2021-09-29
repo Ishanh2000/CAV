@@ -9,9 +9,9 @@ Original Paper: https://dl.acm.org/doi/10.1145/3450267.3450530
 
 ### Team Members
 
-Anshul Rai (180117) - anshulra@iitk.ac.in, anshulrai2001@gmail.com
-Ishanh Misra (180313) - imisra@iitk.ac.in, ishanhmisra@gmail.com
-Utkarsh Gupta (180836) - utkarshg@iitk.ac.in, utkarshg99@gmail.com
+- Anshul Rai (180117): anshulra@iitk.ac.in, anshulrai2001@gmail.com
+- Ishanh Misra (180313): imisra@iitk.ac.in, ishanhmisra@gmail.com
+- Utkarsh Gupta (180836): utkarshg@iitk.ac.in, utkarshg99@gmail.com
 
 ### TODO
 
