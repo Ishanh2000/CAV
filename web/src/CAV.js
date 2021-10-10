@@ -15,9 +15,9 @@ class CAV extends Component {
   drawNode = (node) => {
     const ctx = this.ref.current.getContext('2d');
     ctx.beginPath();
-    ctx.fillStyle = '#22cccc';
+    ctx.fillStyle = '#000000';
     ctx.arc(node.x, node.y, 5, 0, Math.PI * 2, true);
-    ctx.strokeStyle = '#009999';
+    ctx.strokeStyle = '#000000';
     ctx.stroke();
     ctx.fill();
   }
@@ -31,7 +31,9 @@ class CAV extends Component {
 
   updateCurrLocation = (event) => { this.setState({ currLocation: this.getXY(event) }); }
 
-  addNode = (event) => { this.setState({ nodes: [...this.state.nodes, this.getXY(event) ]}); }
+  addNode = (event) => {
+    this.setState({ nodes: [...this.state.nodes, this.getXY(event) ]});
+  }
 
   componentDidUpdate() { this.drawAllNodes(); }
 

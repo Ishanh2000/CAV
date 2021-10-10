@@ -1,0 +1,57 @@
+<!-- AUM SHREEGANESHAAYA NAMAH|| -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Map Canvas Example</title>
+
+	<style type="text/css" media="screen">
+		body { background:#fff; margin:1em; }
+		canvas { display:block; margin:1em auto; background:#eee; border:1px solid #ccc }
+    .radio-class { float: left; clear: none; padding: 0px 1em 0px 0px; }
+    label { float: left; clear: none; display: block; padding: 0px 1em 0px 8px; }
+    input[type=radio], input.radio { float: left; clear: none; margin: 2px 0 0 2px; }
+	</style>
+
+</head>
+
+<body>
+	<span style="float:right;" id="zoom_value"><b>ZOOM:</b> 1.0 (0)</span>
+	
+	<span style="margin-left: 5em; margin-right: 5em;" id="coordinates"><b>X:</b> -, <b>Y:</b> -</span>
+
+	<button style="margin-left: 5em; margin-right: 5em; float:right" id="homeBtn">HOME</button>
+
+	<div class="radio-class">
+		<b class="radio-class">MODE:</b>
+		
+		<input type="radio" class="radio" name="mode" value="nav" id="nav"  />
+		<label for="nav" >Navigation (N)</label>
+		
+		<input type="radio" class="radio" name="mode" value="node" id="node" />
+		<label for="node">WayPoints / Nodes (W)</label>
+		
+		<input type="radio" class="radio" name="mode" value="edge" id="edge" />
+		<label for="edge">Edges (E)</label>
+	</div>
+	<br />
+
+	<center>
+		<canvas id="cav_canvas"></canvas>
+		<button id="downloadPngBtn">Download Canvas As PNG</button>
+		&emsp;&emsp;
+		<button id="downloadJsonBtn">Download Graph As JSON</button>
+	</center>
+	
+	<hr />
+
+	<b>NOTES:</b>
+	<ul>
+		<li>X increases horizotally from left to right, Y increases vertically from top to bottom.</li>
+	</ul>
+
+	<script type="text/javascript" src="map.js" charset="utf-8"></script>
+
+</body>
+
+</html>
