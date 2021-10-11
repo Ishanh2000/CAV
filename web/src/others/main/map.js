@@ -4,11 +4,13 @@
 /*********** GLOBAL VARIABLES (DECLARE BEFORE FUNCTIONS) ***********/
 /*******************************************************************/
 
-const ndDefaultClr = "#080", ndSelectClr = "#F00", edgeClr = "#080", wtClr = "#000";
+const ndDefaultClr = "#080", ndSelectClr = "#F00", edgeClr = "#080", wtClr = "#000"; // darkgreen, red, darkgreen, black
+
 const canvas = document.getElementById('cav_canvas');
 canvas.width = window.innerWidth * 0.85; canvas.height = window.innerHeight * 0.85;
 const ctx = canvas.getContext('2d');
 const zoomScaleFactor = 1.1;
+
 var lastX = canvas.width/2, lastY = canvas.height/2;
 var dragStart, dragged;
 // const wpImg = new Image; wpImg.src = 'wp.png'; // image of waypoint (filled green circle)
@@ -16,20 +18,39 @@ var totalZooms = 0;
 var mode = "nav";
 var edgeStart = -1; // index in WPs of the node which is start of an edge in progress
 var speed = 10.0;
+var angle = 0.00;
+var carColor = "#F00";
+var showCars = true;
 
 // OUR GRAPH
 var WPs = []; // nodes / waypoints
 var sectors = []; // 20 x 20 array of sectors - stores WP indices
 for (let i = 0; i < 20; i++) {
-	var tmp = [];
-	for (let j = 0; j < 20; j++) tmp.push([]);
-	sectors.push(tmp);
+	var tmp1 = [];
+	for (let j = 0; j < 20; j++) tmp1.push([]);
+	sectors.push(tmp1);
 }
 var NBs = []; // neighbours (edge data)
+
+// CARS
+var cars = [];
+var carsSectors = []; // 20 x 20 array of sectors - stores cars' indices
+for (let i = 0; i < 20; i++) {
+	var tmp2 = [];
+	for (let j = 0; j < 20; j++) tmp2.push([]);
+	carsSectors.push(tmp2);
+}
+var carId = 0;
 
 /*******************************************************/
 /********************** FUNCTIONS **********************/
 /*******************************************************/
+
+function uuidv4() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
 
 function getXY(evt) {
 	// apparent x and y
@@ -65,6 +86,23 @@ function drawEdge(start, end) {
 	ctx.stroke();
 }
 
+// Draw an edge
+function drawCar(car) {
+	ctx.save();
+	ctx.beginPath();
+	ctx.translate(car.x, car.y); // move the rotation point to the center of the rect
+	ctx.rotate(car.angle); // rotate the rect
+	ctx.rect(-100, -75, 200, 150); // draw the rect on the transformed context
+	ctx.fillStyle = car.color;
+	ctx.fill();
+	ctx.lineWidth = 5;
+	ctx.moveTo(120, -78);
+	ctx.lineTo(120, 78);
+	ctx.strokeStyle = "#000";
+	ctx.stroke();
+	ctx.restore(); // restore the context to its untranslated/unrotated state
+}
+
 // Draw all nodes
 function draw() {
 	// first draw edges
@@ -85,7 +123,7 @@ function draw() {
 			}
 		})
 	});
-	
+
 	// then draw nodes
 	WPs.forEach(wpc => { // WPs.forEach(wpc => { ctx.drawImage(wp, wpc.x, wpc.y ,10, 10) }); // alternatively
 		ctx.beginPath();
@@ -95,6 +133,9 @@ function draw() {
 		ctx.stroke();
 		ctx.fill();
 	});
+
+	// then the cars
+	if (showCars) cars.forEach(car => drawCar(car)); // make this efficient later on
 }
 
 function zoom(clicks) {
@@ -165,9 +206,9 @@ function dist(p, q) {
 }
 
 function doubleClickHandler(evt) {
+	const p = getXY(evt);
+	const { ix, iy } = getSectorIndex(p);
 	if (mode === "node") {
-		const p = getXY(evt);
-		const { ix, iy } = getSectorIndex(p);
 		if (evt.shiftKey) { // delete a "close-by" node
 			const l = sectors[ix][iy].length;
 			let delIndex = -1;
@@ -196,6 +237,11 @@ function doubleClickHandler(evt) {
 			WPs.splice(wp_index, 1); // removed from waypoints
 
 			/***** DO NOT CHANGE STATEMENT ORDER *****/
+			for (let i = 0; i < 20; i++) for (let j = 0; j < 20; j++) {
+				if ((i === ix) && (j === iy)) continue;
+				const l_ij = sectors[i][j].length;
+				for (let k = 0; k < l_ij; k++) if (sectors[i][j][k] > wp_index) sectors[i][j][k]--;
+			}
 			var sector_new = [];
 			for (let i = 0; i < l; i++) { // index removed from sectors, greater indices decremented
 				if (i === delIndex) continue;
@@ -217,6 +263,42 @@ function doubleClickHandler(evt) {
 		}
 	}
 	// do something else if mode === "nav" || mode === "edge"
+	else if (mode === "cars") {
+		if (evt.shiftKey) {
+			const l = carsSectors[ix][iy].length;
+			console.log(ix, iy);
+			let delIndex = -1;
+			for (let i = 0; i < l; i++) if (dist(p, cars[carsSectors[ix][iy][i]]) <= 100) { delIndex = i; break; } // find the "close-by" car
+			if (delIndex < 0) return; // no "close-by" car found
+			const car_index = carsSectors[ix][iy][delIndex];
+			cars.splice(car_index, 1); // removed from cars
+
+			/***** DO NOT CHANGE STATEMENTS' ORDER *****/
+			for (let i = 0; i < 20; i++) for (let j = 0; j < 20; j++) {
+				if ((i === ix) && (j === iy)) continue;
+				const l_ij = carsSectors[i][j].length;
+				for (let k = 0; k < l_ij; k++) if (carsSectors[i][j][k] > car_index) carsSectors[i][j][k]--;
+			}
+			var carsSector_new = [];
+			for (let i = 0; i < l; i++) { // index removed from sectors, greater indices decremented
+				if (i === delIndex) continue;
+				const val = carsSectors[ix][iy][i];
+				if (val < car_index) carsSector_new.push(val);
+				else if (val > car_index) carsSector_new.push(val-1);
+			}
+			carsSectors[ix][iy] = carsSector_new;
+			/*****************************************/
+
+			clearCanvas();
+			draw(); // redrawing graph
+		}
+		else {
+			const car = { x : p.x, y : p.y, id: carId++, color: carColor, angle: ((angle * Math.PI) / 180.00) };
+			carsSectors[ix][iy].push(cars.length); // push index of car inside relevant sector
+			cars.push(car);
+			drawCar(car);
+		}
+	}
 }
 
 function clickHandler(evt) {
@@ -279,6 +361,8 @@ function clearGraph() {
 	if (confirmClear !== "YES") return;
 	WPs = [];
 	NBs = [];
+	cars = [];
+	for (let i = 0; i < 20; i++) for (let j = 0; j < 20; j++) { sectors[i][j] = []; carsSectors[i][j] = []; }
 	edgeStart = -1;
 	homeTransform();
 }
@@ -289,8 +373,9 @@ document.addEventListener('keypress', (evt) => {
 		case 'n': case 'N': document.getElementById("nav").click(); break;
 		case 'w': case 'W': document.getElementById("node").click(); break;
 		case 'e': case 'E': document.getElementById("edge").click(); break;
+		case 'c': case 'C': document.getElementById("cars").click(); break;
 		case 'h': case 'H': document.getElementById("homeBtn").click(); break;
-		case 'x': case 'X': document.getElementById("clearBtn").click(); break;		
+		case 'x': case 'X': document.getElementById("clearBtn").click(); break;
 	}
 }, false);
 
@@ -312,6 +397,8 @@ function downloadJson() {
 		"waypoints" : WPs.map((p) => { return { x : p.x, y : p.y }; }), // necessary since WPs is Array of SVGPoint
 		"neighbours" : NBs,
 		"sectors" : sectors,
+		"cars" : cars,
+		"carsSectors" : carsSectors,
 	};
 	var downloadAnchorNode = document.createElement('a');
 	downloadAnchorNode.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData)));
@@ -319,6 +406,42 @@ function downloadJson() {
 	document.body.appendChild(downloadAnchorNode); // required for firefox
 	downloadAnchorNode.click();
 	downloadAnchorNode.remove();
+}
+
+async function importJson() {
+	var confirmClear = window.prompt("Are you sure you wish to clear graph? This cannot be undone."
+	+ "Type \"YES\" to confirm (won't clear if you type otherwise):");
+	if (confirmClear !== "YES") return;
+	var importNode = document.createElement('input');
+	importNode.setAttribute("type", "file");
+	importNode.addEventListener('change', (evt) => {
+		if (evt.target.files.length < 1) return;
+		var reader = new FileReader();
+		reader.readAsText(evt.target.files[0], "UTF-8");
+		reader.onload = (e) => {
+			var jsonData;
+			try {
+				jsonData = JSON.parse(e.target.result); // assume success
+				WPs = jsonData.waypoints;
+				NBs = jsonData.neighbours;
+				sectors = jsonData.sectors;
+				cars = jsonData.cars;
+				carsSectors = jsonData.carsSectors;
+				homeTransform();
+			}
+			catch (ex) {
+				corrId = uuidv4();
+				alert(`Error in reading file. See console (Correlation ID: ${corrId}).`);
+				console.error(`[${corrId}] Error in reading file:`, ex);
+			}
+		}
+		reader.onerror = (evt) => {
+			corrId = uuidv4();
+			alert(`Error in reading file. See console (Correlation ID: ${corrId}).`);
+			console.error(`[${corrId}] Error in reading file:`, evt);
+		}
+	});
+	importNode.click();
 }
 
 
@@ -389,11 +512,22 @@ trackTransforms();
 window.onload = function () {
 	document.getElementById("nav").checked = true; // default checking of "Navigation" mode
 	document.getElementById("speed").value = 10.00; // default speed
+	document.getElementById("angle").value = 0.00; // default angle
+	document.getElementById("carColor").value = "#F00"; // default car color (red)
+	document.getElementById("showCars").checked = true; // defualt "Show Cars"
 	document.getElementById("homeBtn").addEventListener('click', homeTransform, false);
 	document.getElementById("clearBtn").addEventListener('click', clearGraph, false);
+	document.getElementById("importJsonBtn").addEventListener('click', importJson, false);
 	document.getElementById("downloadPngBtn").addEventListener('click', downloadPng, false);
 	document.getElementById("downloadJsonBtn").addEventListener('click', downloadJson, false);
-	document.getElementById("speed").addEventListener('change', (evt) => { speed = parseFloat(evt.target.value.trim()) }, false);
+	document.getElementById("speed").addEventListener('change', (evt) => { speed = parseFloat(evt.target.value.trim()); }, false);
+	document.getElementById("angle").addEventListener('change', (evt) => { angle = parseFloat(evt.target.value.trim()); }, false);
+	document.getElementById("carColor").addEventListener('change', (evt) => { carColor = evt.target.value.trim(); }, false);
+	document.getElementById("showCars").addEventListener('change', () => {
+		showCars = document.getElementById("showCars").checked;
+		clearCanvas();
+		draw();
+	}, false);
 	// radio mode changer
 	document.querySelectorAll('input[type=radio][name="mode"]').forEach(radio => {
 		radio.addEventListener('change', () => { mode = radio.value; });
