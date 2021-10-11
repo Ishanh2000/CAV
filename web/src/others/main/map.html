@@ -16,11 +16,11 @@
 </head>
 
 <body>
-	<span style="float:right;" id="zoom_value"><b>ZOOM:</b> 1.0 (0)</span>
-	
-	<span style="margin-left: 5em; margin-right: 5em;" id="coordinates"><b>X:</b> -, <b>Y:</b> -</span>
+	<button style="margin-left: 0.5em; margin-right: 0.5em; float:right" id="homeBtn">HOME (H)</button>
 
-	<button style="margin-left: 5em; margin-right: 5em; float:right" id="homeBtn">HOME</button>
+	<button style="margin-left: 0.5em; margin-right: 0.5em; float:right" id="clearBtn">CLEAR (X)</button>
+	
+	<span style="float:right; margin-right: 2em;" id="zoom_value"><b>ZOOM:</b> 1.0 (0)</span>
 
 	<div class="radio-class">
 		<b class="radio-class">MODE:</b>
@@ -37,17 +37,45 @@
 	<br />
 
 	<center>
+		<div id="coordinates"><b>X:</b> -, <b>Y:</b> -</div>
 		<canvas id="cav_canvas"></canvas>
+	</center>
+	<center>
+		Speed (m/s)
+		<input type="number" name="speed" id="speed" min="0.01" step="0.01" value="10.00" />
+		&emsp;&emsp;
 		<button id="downloadPngBtn">Download Canvas As PNG</button>
 		&emsp;&emsp;
 		<button id="downloadJsonBtn">Download Graph As JSON</button>
 	</center>
 	
+	<br />
 	<hr />
 
 	<b>NOTES:</b>
 	<ul>
-		<li>X increases horizotally from left to right, Y increases vertically from top to bottom.</li>
+		<li>
+			X increases horizotally from left to right, Y increases vertically from top to bottom. 1 unit = 1 cm = 0.01 m.
+		</li>
+		<li>
+			Total usable area = [-100 m, 100 m)<sup>2</sup>, divided into 400 blocks of dimensions 10 m x 10 m (useful for developer).
+		</li>
+		<li>
+			In "Navigation" mode, scroll to zoom in/out and drag to pan. Use "HOME" button to undo all navigations. Navigation
+			does not change coordinates of actual waypoints/nodes.
+		</li>
+		<li>
+			In "WayPoints/Nodes" mode, double click to add and (Shift + Double Click) to remove a waypoint.
+		</li>
+		<li>
+			In "Edges" mode, click on two nodes one by one to add an edge (no effect for pre-existing edge). Use Shift while
+			clicking one/both nodes to delete an edge (no effect for non-existing edge).
+		</li>
+		<li>
+			Edge weight = edge length / speed. Average edge length should be 0.5 m (50 units). Average speed should be
+			10 m/s (36 kmph).
+		</li>
+
 	</ul>
 
 	<script type="text/javascript" src="map.js" charset="utf-8"></script>
