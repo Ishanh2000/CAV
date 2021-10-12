@@ -20,7 +20,8 @@ $PY -m pip install virtualenv
 echo "Creating virtualenv $CAV"
 $PY -m venv $CAV
 source $CAV/bin/activate
-echo "Installing flask, flask-cors"
+echo "Installing numpy, flask, flask-cors"
+$PY -m pip install numpy
 $PY -m pip install flask
 $PY -m pip install flask-cors
 
