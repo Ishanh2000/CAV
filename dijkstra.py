@@ -3,11 +3,17 @@ import json
 from os import close, read
 import numpy as np
 
-def Dijkstra(G, src, dst):
+
+def dist(p, q):
+  """ Euclidean Distance between point `p` and `q` """
+  return np.sqrt((p["x"] - q["x"])**2 + (p["y"] - q["y"])**2)
+
+
+def Dijkstra(graph, src, dst):
   """ Dijkstra Algorithm for Shortest Path between WP[`src`] and WP[`dst`] """
 
-  l_WPs = len(G["waypoints"])
-  NBs = G["neighbours"]
+  l_WPs = len(graph["waypoints"])
+  NBs = graph["neighbours"]
 
   d = [float('inf') for i in range(l_WPs)] # distances
   parent = [None for i in range(l_WPs)] # parents
@@ -26,13 +32,34 @@ def Dijkstra(G, src, dst):
           d[v] = alt
           parent[v] = u
   
-  path = [dst] # list of vertices
-  while parent[path[-1]] != None:
-    path.append(parent[path[-1]])
-  path.reverse()
-  return path, d[dst] # second is total weight
+  sp = [dst] # list of vertices
+  while parent[sp[-1]] != None:
+    sp.append(parent[sp[-1]])
+  sp.reverse()
+  return sp
 
-graph_json_file = "./samples/graph.json"
+
+def compute_future_path(graph, car, d_max):
+  """ Computing Future Path of a Car """
+  # d_max is passed in metres
+
+  WPs = graph["waypoints"]
+  sp = Dijkstra(graph = graph, src = car["closest_wp"], dst = car["dest"])
+
+  # fp, tot_dist = [sp[0]], 0
+
+  # for u in sp[1:]:
+  #   edge_len = dist(WPs[fp[-1]], WPs[u])
+  #   if (tot_dist + edge_len) >= (100 * d_max): # LHS is in cm
+  #     break
+  #   fp.append(u)
+  #   tot_dist += edge_len
+
+  return sp
+
+
+
+graph_json_file = "./samples/eye.json"
 
 if __name__ == "__main__":
   G = []
@@ -42,9 +69,9 @@ if __name__ == "__main__":
   cars = G["cars"]; l_cars = len(cars)
 
   for ci in range(l_cars):
-    cars[ci]["sp"], cars[ci]["sp_wt"] = Dijkstra(G, cars[ci]["closest_wp"], cars[ci]["dest"])
-    # FP = ??
-    print(f"ID = {cars[ci]['id']}, Path = {cars[ci]['sp']}, Path Length = {cars[ci]['sp_wt']}")
+    cars[ci]["sp"] = Dijkstra(G, cars[ci]["closest_wp"], cars[ci]["dest"])
+    # cars[ci]["fp"] = compute_future_path(graph = G, car = cars[ci], d_max = 10)
+    print(f"ID = {cars[ci]['id']}, FP = {cars[ci]['sp']}")
   
 
 

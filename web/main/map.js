@@ -6,8 +6,10 @@
 /*********** GLOBAL VARIABLES (DECLARE BEFORE FUNCTIONS) ***********/
 /*******************************************************************/
 
-// darkgreen, red, darkgreen, black, black
-const ndDefaultClr = "#080", ndSelectClr = "#F00", edgeClr = "#080", wtClr = "#000", destTxtClr = "#000";
+// darkgreen, red, darkgreen, { black, white }, black
+const ndDefaultClr = "#080", ndSelectClr = "#F00", edgeClr = "#080";
+const wtClr = { light : "#000", dark: "#222" }, destTxtClr = { light : "#000", dark: "#222" };
+var useDarkMode;
 
 const canvas = document.getElementById('cav_canvas');
 canvas.width = window.innerWidth * 0.85; canvas.height = window.innerHeight * 0.85;
@@ -69,7 +71,6 @@ function clearCanvas() {
 	ctx.clearRect(p1.x, p1.y, p2.x-p1.x, p2.y-p1.y);
 }
 
-// Draw one node
 function drawNode(nd) {
 	ctx.beginPath();
 	ctx.fillStyle = nd.selected ? ndSelectClr : ndDefaultClr; // red if selected
@@ -79,7 +80,6 @@ function drawNode(nd) {
 	ctx.fill();
 }
 
-// Draw a car
 function drawCar(car) {
 	ctx.save();
 	ctx.beginPath();
@@ -100,11 +100,9 @@ function drawCar(car) {
 	ctx.restore(); // restore the context to its untranslated/unrotated state
 }
 
-// Draw all nodes
 function draw() {
 	// first draw destinations
 	ctx.font = "15px Arial";
-	ctx.strokeStyle = destTxtClr;
 	if (showCars) cars.forEach(car => {
 		if (car.dest === null) return;
 		ctx.save();
@@ -120,6 +118,7 @@ function draw() {
     ctx.closePath();
 		ctx.fillStyle = car.color;
     ctx.fill();
+		ctx.strokeStyle = ctx.fillStyle = destTxtClr[useDarkMode ? "dark" : "light"];
 		ctx.strokeText(`(${car.id})`, 20, -20);
     ctx.restore();
 	});
@@ -128,18 +127,28 @@ function draw() {
 	ctx.lineWidth = 2;
 	ctx.font = "15px Arial";
 	ctx.textAlign = "center";
-	ctx.fillStyle = wtClr;
 	NBs.forEach((nbsi, i) => {
 		nbsi.forEach((nb) => {
-			if (i < nb.idx) {
-				ctx.beginPath();
-				ctx.moveTo(WPs[i].x, WPs[i].y);
-				ctx.lineTo(WPs[nb.idx].x, WPs[nb.idx].y);
-				ctx.strokeStyle = edgeClr;
-				ctx.stroke();
-				ctx.strokeStyle = wtClr;
-				ctx.strokeText(`${nb.wt.toFixed(2)}`, (WPs[i].x + WPs[nb.idx].x)/2, (WPs[i].y + WPs[nb.idx].y)/2);
-			}
+			const x1 = WPs[i].x, y1 = WPs[i].y, x2 = WPs[nb.idx].x, y2 = WPs[nb.idx].y;
+			ctx.beginPath();
+			ctx.moveTo(x1, y1); // x1, y1
+			ctx.lineTo(x2, y2);
+			ctx.strokeStyle = edgeClr;
+			ctx.stroke();
+
+			const b = 10 + 5, a = 5;
+			const _d = dist(WPs[i], WPs[nb.idx]);
+			ctx.beginPath();
+			ctx.moveTo(((_d - 5)*x2 + 5*x1) / _d, ((_d - 5)*y2 + 5*y1) / _d);
+			const _k = { x : ((y1 - y2) / _d), y : ((x2 - x1) / _d) }; // vector perpendicular to edge
+			const _m = { x : (((_d - b)*x2 + b*x1) / _d), y : (((_d - b)*y2 + b*y1) / _d) }; // mid-point
+			ctx.lineTo(_m.x + (a * _k.x), _m.y + (a * _k.y));
+			ctx.lineTo(_m.x - (a * _k.x), _m.y - (a * _k.y));
+			ctx.fillStyle = edgeClr;
+			ctx.fill();
+
+			ctx.strokeStyle = ctx.fillStyle = wtClr[useDarkMode ? "dark" : "light"];
+			ctx.strokeText(`${nb.wt.toFixed(2)}`, (WPs[i].x + WPs[nb.idx].x)/2, (WPs[i].y + WPs[nb.idx].y)/2);
 		})
 	});
 
@@ -169,7 +178,6 @@ function zoom(clicks) {
 	document.getElementById("zoom_value").innerHTML = "<b>ZOOM:</b> "
 		+ Math.pow(zoomScaleFactor, totalZooms).toFixed(4) + " (" + totalZooms + ")";
 }
-
 
 function mouseDownHandler(evt) {
 	if (mode === "nav") {
@@ -271,7 +279,7 @@ function doubleClickHandler(evt) {
 			sectors[ix][iy] = sector_new;
 			/*****************************************/
 
-			// must remove destination
+			// must remove car destination
 			const l_cars = cars.length;
 			for (let i = 0; i < l_cars; i++) {
 				if (cars[i].dest === wp_index) cars[i].dest = null;
@@ -384,7 +392,6 @@ function clickHandler(evt) {
 				if ((edgeStart !== ptIndex) && (NBs[edgeStart].map(x => x.idx).indexOf(ptIndex) < 0)) {
 					const wt = (speed > 0) ? ((10.0 * dist(WPs[edgeStart], WPs[ptIndex])) / speed) : 1000000; // milliseconds
 					NBs[edgeStart].push({ idx : ptIndex, wt });
-					NBs[ptIndex].push({ idx : edgeStart, wt });
 				}
 				WPs[edgeStart].selected = false;
 				edgeStart = -1;
@@ -425,23 +432,25 @@ function clearGraph() {
 	cars = [];
 	for (let i = 0; i < 20; i++) for (let j = 0; j < 20; j++) { sectors[i][j] = []; carsSectors[i][j] = []; }
 	edgeStart = -1;
+	carId = 0;
 	homeTransform();
 }
 
 document.addEventListener('keypress', (evt) => {
-	const k = evt.key;
+	const k = evt.key.toLowerCase();
 	switch(k) {
-		case 'n': case 'N': document.getElementById("nav").click(); break;
-		case 'w': case 'W': document.getElementById("node").click(); break;
-		case 'e': case 'E': document.getElementById("edge").click(); break;
-		case 'c': case 'C': document.getElementById("cars").click(); break;
-		case 'd': case 'D': document.getElementById("destinations").click(); break;
-		case 'h': case 'H': document.getElementById("homeBtn").click(); break;
-		case 'x': case 'X': document.getElementById("clearBtn").click(); break;
-		case 'i': case 'I': document.getElementById("importJsonBtn").click(); break;
-		case 'p': case 'P': document.getElementById("downloadPngBtn").click(); break;
-		case 'j': case 'J': document.getElementById("downloadJsonBtn").click(); break;
-		case 's': case 'S': document.getElementById("showCars").click(); break;
+		case 'n': document.getElementById("nav").click(); break;
+		case 'w': document.getElementById("node").click(); break;
+		case 'e': document.getElementById("edge").click(); break;
+		case 'c': document.getElementById("cars").click(); break;
+		case 'd': document.getElementById("destinations").click(); break;
+		case 'h': document.getElementById("homeBtn").click(); break;
+		case 'x': document.getElementById("clearBtn").click(); break;
+		case 'i': document.getElementById("importJsonBtn").click(); break;
+		case 'p': document.getElementById("downloadPngBtn").click(); break;
+		case 'j': document.getElementById("downloadJsonBtn").click(); break;
+		case 's': document.getElementById("showCars").click(); break;
+		case 'b': document.getElementById("darkMode").click(); break;
 	}
 }, false);
 
@@ -474,8 +483,8 @@ function downloadJson() {
 	var jsonData = {
 		"waypoints" : WPs.map((p) => { return { x : p.x, y : p.y }; }), // necessary since WPs is Array of SVGPoint
 		"neighbours" : NBs,
-		"sectors" : sectors,
 		"cars" : cars2,
+		"sectors" : sectors,
 		"carsSectors" : carsSectors,
 	};
 	var dwnldNode = document.createElement('a');
@@ -525,7 +534,7 @@ async function importJson() {
 }
 
 
-/**** Don't really know what this function does. Afraid to remove this. ****/
+/**** Don't remove this function does as it keeps track of transforms in he form of a matrix. ****/
 function trackTransforms() {
 
 	// Adds ctx.getTransform() - returns an SVGMatrix
@@ -608,6 +617,14 @@ window.onload = function () {
 		clearCanvas();
 		draw();
 	}, false);
+	document.getElementById("darkMode").addEventListener('change', () => {
+		useDarkMode = document.getElementById("darkMode").checked;
+		document.body.style.backgroundColor = useDarkMode ? "#000" : "#FFF";
+		document.body.style.color = useDarkMode ? "#FFF" : "#000";
+		canvas.style.backgroundColor = useDarkMode ? "#555" : "#EEE";
+	}, false);
+	document.getElementById("darkMode").checked = false;
+	document.getElementById("darkMode").click();
 	// radio mode changer
 	document.querySelectorAll('input[type=radio][name="mode"]').forEach(radio => {
 		radio.addEventListener('change', () => { mode = radio.value; });
