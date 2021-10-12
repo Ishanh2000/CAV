@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<title>Map Canvas Example</title>
+	<title>CAV Mapping</title>
 
 	<style type="text/css" media="screen">
 		body { background:#fff; margin:1em; }
@@ -36,6 +36,9 @@
 
 		<input type="radio" class="radio" name="mode" value="cars" id="cars" />
 		<label for="cars">Cars (C)</label>
+		
+		<input type="radio" class="radio" name="mode" value="destinations" id="destinations" />
+		<label for="destinations">Destinations (D)</label>
 	</div>
 	<br />
 
@@ -54,27 +57,28 @@
 		
 		Car Color
 		<select id="carColor" name="carColor" value="0.00" style="width:10rem;" >
-			<option value="#F00">Red (#F00)</option>
-			<option value="#00F">Blue (#)</option>
-			<option value="#FC0">Chrome (#)</option>
-			<option value="#3CF">Lightblue (#)</option>
-			<option value="#3C3">Lightgreen (#)</option>
-			<option value="#C0C">Magenta (#)</option>
-			<option value="#F60">Orange (#)</option>
-			<option value="#000">Black (#)</option>
+			<option value="#F00">(#F00) Red</option>
+			<option value="#00F">(#00F) Blue</option>
+			<option value="#FC0">(#FC0) Chrome</option>
+			<option value="#3CF">(#3CF) Lightblue</option>
+			<option value="#3C3">(#3C3) Lightgreen</option>
+			<option value="#C0C">(#C0C) Magenta</option>
+			<option value="#F60">(#F60) Orange</option>
+			<option value="#000">(#000) Black</option>
+			<option value="#FFF">(#000) White</option>
 		</select>
 		&emsp;&emsp;
 
 		<input type="checkbox" name="showCars" id="showCars" checked />
-		Show Cars
+		Show Cars (S)
 		
 		<br /><br />
 
-		<button id="importJsonBtn">Import from JSON</button>
+		<button id="importJsonBtn">Import from JSON (I)</button>
 		&emsp;&emsp;
-		<button id="downloadPngBtn">Download Canvas As PNG</button>
+		<button id="downloadPngBtn">Download Canvas As PNG (P)</button>
 		&emsp;&emsp;
-		<button id="downloadJsonBtn">Download Graph As JSON</button>
+		<button id="downloadJsonBtn">Download Graph As JSON (J)</button>
 	</center>
 	
 	<br />

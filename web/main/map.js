@@ -6,7 +6,8 @@
 /*********** GLOBAL VARIABLES (DECLARE BEFORE FUNCTIONS) ***********/
 /*******************************************************************/
 
-const ndDefaultClr = "#080", ndSelectClr = "#F00", edgeClr = "#080", wtClr = "#000"; // darkgreen, red, darkgreen, black
+// darkgreen, red, darkgreen, black, black
+const ndDefaultClr = "#080", ndSelectClr = "#F00", edgeClr = "#080", wtClr = "#000", destTxtClr = "#000";
 
 const canvas = document.getElementById('cav_canvas');
 canvas.width = window.innerWidth * 0.85; canvas.height = window.innerHeight * 0.85;
@@ -78,17 +79,7 @@ function drawNode(nd) {
 	ctx.fill();
 }
 
-// Draw an edge
-function drawEdge(start, end) {
-	ctx.beginPath();
-	ctx.lineWidth = 2;
-	ctx.moveTo(start.x, start.y);
-	ctx.lineTo(end.x, end.y);
-	ctx.strokeStyle = edgeClr;
-	ctx.stroke();
-}
-
-// Draw an edge
+// Draw a car
 function drawCar(car) {
 	ctx.save();
 	ctx.beginPath();
@@ -102,12 +93,38 @@ function drawCar(car) {
 	ctx.lineTo(120, 78);
 	ctx.strokeStyle = "#000";
 	ctx.stroke();
+	ctx.font = "50px Arial";
+	// use white on dark-coloured cars
+	ctx.fillStyle = ctx.strokeStyle = ([ "#FC0", "#3CF", "#3C3", "#FFF" ].indexOf(car.color) < 0) ? "#FFF" : "#000";
+	ctx.strokeText(`${car.id}`, -10, 15);
 	ctx.restore(); // restore the context to its untranslated/unrotated state
 }
 
 // Draw all nodes
 function draw() {
-	// first draw edges
+	// first draw destinations
+	ctx.font = "15px Arial";
+	ctx.strokeStyle = destTxtClr;
+	if (showCars) cars.forEach(car => {
+		if (car.dest === null) return;
+		ctx.save();
+    ctx.beginPath();
+    ctx.translate(WPs[car.dest].x, WPs[car.dest].y);
+    ctx.moveTo(0, -20);
+    for (var i = 0; i < 5; i++) {
+			ctx.rotate(Math.PI / 5);
+			ctx.lineTo(0, -10);
+			ctx.rotate(Math.PI / 5);
+			ctx.lineTo(0, -20);
+    }
+    ctx.closePath();
+		ctx.fillStyle = car.color;
+    ctx.fill();
+		ctx.strokeText(`(${car.id})`, 20, -20);
+    ctx.restore();
+	});
+
+	// then draw edges
 	ctx.lineWidth = 2;
 	ctx.font = "15px Arial";
 	ctx.textAlign = "center";
@@ -254,6 +271,13 @@ function doubleClickHandler(evt) {
 			sectors[ix][iy] = sector_new;
 			/*****************************************/
 
+			// must remove destination
+			const l_cars = cars.length;
+			for (let i = 0; i < l_cars; i++) {
+				if (cars[i].dest === wp_index) cars[i].dest = null;
+				else if (cars[i].dest < wp_index) cars[i].dest--;
+			}
+
 			clearCanvas();
 			draw(); // redrawing graph
 		}
@@ -264,7 +288,6 @@ function doubleClickHandler(evt) {
 			drawNode(p);
 		}
 	}
-	// do something else if mode === "nav" || mode === "edge"
 	else if (mode === "cars") {
 		if (evt.shiftKey) {
 			const l = carsSectors[ix][iy].length;
@@ -295,12 +318,48 @@ function doubleClickHandler(evt) {
 			draw(); // redrawing graph
 		}
 		else {
-			const car = { x : p.x, y : p.y, id: carId++, color: carColor, angle: ((angle * Math.PI) / 180.00) };
+			const car = { x : p.x, y : p.y, id: carId++, color: carColor, angle: ((angle * Math.PI) / 180.00), dest: null };
 			carsSectors[ix][iy].push(cars.length); // push index of car inside relevant sector
 			cars.push(car);
 			drawCar(car);
 		}
 	}
+	else if (mode === "destinations") {
+		if (evt.shiftKey) {
+			const l_cars = cars.length;
+			let carIndex = -1;
+			for (let i = 0; i < l_cars; i++) if ((cars[i].dest !== null) && (dist(p, WPs[cars[i].dest]) <= 20)) { carIndex = i; break; } // find the car whose destination is close by
+			if (carIndex < 0) return; // no car whose destination is close by
+			cars[carIndex].dest = null; // remove destination for this car an redraw graph
+			clearCanvas();
+			draw();
+		}
+		else {
+			const l = sectors[ix][iy].length;
+			let secIndex = -1;
+			for (let i = 0; i < l; i++) if (dist(p, WPs[sectors[ix][iy][i]]) <= 5) { secIndex = i; break; } // find the "close-by" point
+			if (secIndex < 0) return; // no "close-by" point found
+
+			const getCarIdStr = window.prompt("Please enter Car ID:"); // get the car id through prompt
+			const getCarId = parseInt(getCarIdStr);
+			var carIndex = -1;
+			const l_cars = cars.length;
+			for (let i = 0; i < l_cars; i++) if (cars[i].id === getCarId) { carIndex = i; break; }
+			if (carIndex < 0) {
+				window.alert(`No car found with ID = \"${getCarIdStr}\"`);
+				return;
+			}
+			if (cars[carIndex].dest !== null) {
+				window.alert(`A destination already exists for car with ID = \"${getCarIdStr}\". Please delete that destination first.`);
+				return;
+			}
+			
+			cars[carIndex].dest = sectors[ix][iy][secIndex]; // actual insertion of destination
+			clearCanvas();
+			draw();
+		}
+	}
+	// do something else for other modes
 }
 
 function clickHandler(evt) {
@@ -376,8 +435,13 @@ document.addEventListener('keypress', (evt) => {
 		case 'w': case 'W': document.getElementById("node").click(); break;
 		case 'e': case 'E': document.getElementById("edge").click(); break;
 		case 'c': case 'C': document.getElementById("cars").click(); break;
+		case 'd': case 'D': document.getElementById("destinations").click(); break;
 		case 'h': case 'H': document.getElementById("homeBtn").click(); break;
 		case 'x': case 'X': document.getElementById("clearBtn").click(); break;
+		case 'i': case 'I': document.getElementById("importJsonBtn").click(); break;
+		case 'p': case 'P': document.getElementById("downloadPngBtn").click(); break;
+		case 'j': case 'J': document.getElementById("downloadJsonBtn").click(); break;
+		case 's': case 'S': document.getElementById("showCars").click(); break;
 	}
 }, false);
 
@@ -402,12 +466,12 @@ function downloadJson() {
 		"cars" : cars,
 		"carsSectors" : carsSectors,
 	};
-	var downloadAnchorNode = document.createElement('a');
-	downloadAnchorNode.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData)));
-	downloadAnchorNode.setAttribute("download", "graph.json");
-	document.body.appendChild(downloadAnchorNode); // required for firefox
-	downloadAnchorNode.click();
-	downloadAnchorNode.remove();
+	var dwnldNode = document.createElement('a');
+	dwnldNode.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData)));
+	dwnldNode.setAttribute("download", "graph.json");
+	document.body.appendChild(dwnldNode); // required for firefox
+	dwnldNode.click();
+	dwnldNode.remove();
 }
 
 async function importJson() {
@@ -429,6 +493,8 @@ async function importJson() {
 				sectors = jsonData.sectors;
 				cars = jsonData.cars;
 				carsSectors = jsonData.carsSectors;
+				carId = 0;
+				cars.forEach(car => { if (car.id > carId) carId = (car.id + 1); });
 				homeTransform();
 			}
 			catch (ex) {
