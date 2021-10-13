@@ -78,6 +78,8 @@
       "id": 0,
       "color": "#F00",
       "angle": 0,
+      "speed": 15.3,
+      "acc": -2.5,
       "dest": 5,
       "closest_wp": 0
     },
@@ -86,6 +88,8 @@
       "y": 750.0000610351562,
       "id": 2,
       "color": "#FC0",
+      "speed": 14.8,
+      "acc": 1.7,
       "angle": 0,
       "dest": 0,
       "closest_wp": 3

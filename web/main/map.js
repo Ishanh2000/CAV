@@ -6,28 +6,43 @@
 /*********** GLOBAL VARIABLES (DECLARE BEFORE FUNCTIONS) ***********/
 /*******************************************************************/
 
-// darkgreen, red, darkgreen, { black, white }, black
-const ndDefaultClr = "#080", ndSelectClr = "#F00", edgeClr = "#080";
-const wtClr = { light : "#000", dark: "#222" }, destTxtClr = { light : "#000", dark: "#222" };
+const docBgClr = { light : "#FFF", dark : "#000" }, docTxtClr = { light : "#000", dark : "#FFF" };
 var useDarkMode;
 
+// node related parameters
+const nodeRadius = 5, nodeDetectRadius = 8, ndDefaultClr = "#080", ndSelectClr = "#F00";
+
+// edge related parameters
+const edgeWidth = 2, arrowHeadLength = 10, arrowHeadWidth = 10, edgeClr = "#080";
+const wtStokeWidht = 1, wtClr = { light : "#000", dark: "#000" }, wtFont = "15px Arial", infWeight = 1000000; // milliseconds
+
+// car related parameters
+const carWidth = 150, carLength = 200, carDetectRadius = 100, carIdFont = "50px Arial";
+const lightCarClrs = [ "#FC0", "#3CF", "#3C3", "#FFF" ];
+
+// destination star related paramters
+const destStarExRadius = 20, destStarInRadius = 10, destStarSpokes = 5, destStarDetectRadius = 20;
+const destStarTxtOffset = 20, destTxtClr = { light : "#000", dark: "#222" }, destCarIdFont = "15px Arial";
+
+// canvar related parameters
 const canvas = document.getElementById('cav_canvas');
 canvas.width = window.innerWidth * 0.85; canvas.height = window.innerHeight * 0.85;
 const ctx = canvas.getContext('2d');
-const zoomScaleFactor = 1.1;
+const canvasBgClr = { light : "#EEE", dark : "#555" };
 
+// other parameters
+const zoomScaleFactor = 1.1;
 var lastX = canvas.width/2, lastY = canvas.height/2;
 var dragStart, dragged;
-// const wpImg = new Image; wpImg.src = 'wp.png'; // image of waypoint (filled green circle)
 var totalZooms = 0;
 var mode = "nav";
 var edgeStart = -1; // index in WPs of the node which is start of an edge in progress
-var speed = 10.0;
+var speed = 10.0, acc = 0.0; // m/s, m/s2
 var angle = 0.00;
 var carColor = "#F00";
 var showCars = true;
 
-// OUR GRAPH
+// GRAPH
 var WPs = []; // nodes / waypoints
 var sectors = []; // 20 x 20 array of sectors - stores WP indices
 for (let i = 0; i < 20; i++) {
@@ -73,9 +88,8 @@ function clearCanvas() {
 
 function drawNode(nd) {
 	ctx.beginPath();
-	ctx.fillStyle = nd.selected ? ndSelectClr : ndDefaultClr; // red if selected
-	ctx.arc(nd.x, nd.y, 5, 0, Math.PI * 2, true);
-	ctx.strokeStyle = nd.selected ? ndSelectClr : ndDefaultClr; // red if selected
+	ctx.strokeStyle = ctx.fillStyle = nd.selected ? ndSelectClr : ndDefaultClr;
+	ctx.arc(nd.x, nd.y, nodeRadius, 0, Math.PI * 2, true);
 	ctx.stroke();
 	ctx.fill();
 }
@@ -85,61 +99,61 @@ function drawCar(car) {
 	ctx.beginPath();
 	ctx.translate(car.x, car.y); // move the rotation point to the center of the rect
 	ctx.rotate(car.angle); // rotate the rect
-	ctx.rect(-100, -75, 200, 150); // draw the rect on the transformed context
+	ctx.rect(-carLength/2, -carWidth/2, carLength, carWidth); // draw the rect on the transformed context
 	ctx.fillStyle = car.color;
 	ctx.fill();
 	ctx.lineWidth = 5;
-	ctx.moveTo(120, -78);
-	ctx.lineTo(120, 78);
+	ctx.moveTo(20 + (carLength/2), -3 - (carWidth/2));
+	ctx.lineTo(20 + (carLength/2), 3 + (carWidth/2));
 	ctx.strokeStyle = "#000";
 	ctx.stroke();
-	ctx.font = "50px Arial";
-	// use white on dark-coloured cars
-	ctx.fillStyle = ctx.strokeStyle = ([ "#FC0", "#3CF", "#3C3", "#FFF" ].indexOf(car.color) < 0) ? "#FFF" : "#000";
+	ctx.font = carIdFont;
+	ctx.fillStyle = ctx.strokeStyle = (lightCarClrs.indexOf(car.color) < 0) ? "#FFF" : "#000"; // use white on dark-coloured cars
 	ctx.strokeText(`${car.id}`, -10, 15);
 	ctx.restore(); // restore the context to its untranslated/unrotated state
 }
 
 function draw() {
 	// first draw destinations
-	ctx.font = "15px Arial";
+	ctx.lineWidth = wtStokeWidht;
+	ctx.font = destCarIdFont;
 	if (showCars) cars.forEach(car => {
 		if (car.dest === null) return;
 		ctx.save();
     ctx.beginPath();
     ctx.translate(WPs[car.dest].x, WPs[car.dest].y);
-    ctx.moveTo(0, -20);
-    for (var i = 0; i < 5; i++) {
-			ctx.rotate(Math.PI / 5);
-			ctx.lineTo(0, -10);
-			ctx.rotate(Math.PI / 5);
-			ctx.lineTo(0, -20);
+    ctx.moveTo(0, -destStarExRadius);
+    for (var i = 0; i < destStarSpokes; i++) {
+			ctx.rotate(Math.PI / destStarSpokes);
+			ctx.lineTo(0, -destStarInRadius);
+			ctx.rotate(Math.PI / destStarSpokes);
+			ctx.lineTo(0, -destStarExRadius);
     }
     ctx.closePath();
 		ctx.fillStyle = car.color;
     ctx.fill();
 		ctx.strokeStyle = ctx.fillStyle = destTxtClr[useDarkMode ? "dark" : "light"];
-		ctx.strokeText(`(${car.id})`, 20, -20);
+		ctx.strokeText(`(${car.id})`, destStarTxtOffset, -destStarTxtOffset);
     ctx.restore();
 	});
 
 	// then draw edges
-	ctx.lineWidth = 2;
-	ctx.font = "15px Arial";
+	ctx.font = wtFont;
 	ctx.textAlign = "center";
 	NBs.forEach((nbsi, i) => {
 		nbsi.forEach((nb) => {
 			const x1 = WPs[i].x, y1 = WPs[i].y, x2 = WPs[nb.idx].x, y2 = WPs[nb.idx].y;
+			ctx.lineWidth = edgeWidth;
 			ctx.beginPath();
 			ctx.moveTo(x1, y1); // x1, y1
 			ctx.lineTo(x2, y2);
 			ctx.strokeStyle = edgeClr;
 			ctx.stroke();
 
-			const b = 10 + 5, a = 5;
+			const b = (arrowHeadLength + nodeRadius), a = (arrowHeadWidth/2);
 			const _d = dist(WPs[i], WPs[nb.idx]);
 			ctx.beginPath();
-			ctx.moveTo(((_d - 5)*x2 + 5*x1) / _d, ((_d - 5)*y2 + 5*y1) / _d);
+			ctx.moveTo(((_d - nodeRadius)*x2 + nodeRadius*x1) / _d, ((_d - nodeRadius)*y2 + nodeRadius*y1) / _d);
 			const _k = { x : ((y1 - y2) / _d), y : ((x2 - x1) / _d) }; // vector perpendicular to edge
 			const _m = { x : (((_d - b)*x2 + b*x1) / _d), y : (((_d - b)*y2 + b*y1) / _d) }; // mid-point
 			ctx.lineTo(_m.x + (a * _k.x), _m.y + (a * _k.y));
@@ -148,6 +162,7 @@ function draw() {
 			ctx.fill();
 
 			ctx.strokeStyle = ctx.fillStyle = wtClr[useDarkMode ? "dark" : "light"];
+			ctx.lineWidth = wtStokeWidht;
 			ctx.strokeText(`${nb.wt.toFixed(2)}`, (WPs[i].x + WPs[nb.idx].x)/2, (WPs[i].y + WPs[nb.idx].y)/2);
 		})
 	});
@@ -156,7 +171,7 @@ function draw() {
 	WPs.forEach(wpc => { // WPs.forEach(wpc => { ctx.drawImage(wp, wpc.x, wpc.y ,10, 10) }); // alternatively
 		ctx.beginPath();
 		ctx.fillStyle = wpc.selected ? ndSelectClr : ndDefaultClr;
-		ctx.arc(wpc.x, wpc.y, 5, 0, Math.PI * 2, true);
+		ctx.arc(wpc.x, wpc.y, nodeRadius, 0, Math.PI * 2, true);
 		ctx.strokeStyle = wpc.selected ? ndSelectClr : ndDefaultClr;
 		ctx.stroke();
 		ctx.fill();
@@ -239,7 +254,7 @@ function doubleClickHandler(evt) {
 		if (evt.shiftKey) { // delete a "close-by" node
 			const l = sectors[ix][iy].length;
 			let delIndex = -1;
-			for (let i = 0; i < l; i++) if (dist(p, WPs[sectors[ix][iy][i]]) <= 5) { delIndex = i; break; } // find the "close-by" point
+			for (let i = 0; i < l; i++) if (dist(p, WPs[sectors[ix][iy][i]]) <= nodeDetectRadius) { delIndex = i; break; } // find the "close-by" point
 			if (delIndex < 0) return; // no "close-by" point found
 			const wp_index = sectors[ix][iy][delIndex];
 			if (edgeStart === wp_index) edgeStart = -1;
@@ -301,7 +316,7 @@ function doubleClickHandler(evt) {
 			const l = carsSectors[ix][iy].length;
 			console.log(ix, iy);
 			let delIndex = -1;
-			for (let i = 0; i < l; i++) if (dist(p, cars[carsSectors[ix][iy][i]]) <= 100) { delIndex = i; break; } // find the "close-by" car
+			for (let i = 0; i < l; i++) if (dist(p, cars[carsSectors[ix][iy][i]]) <= carDetectRadius) { delIndex = i; break; } // find the "close-by" car
 			if (delIndex < 0) return; // no "close-by" car found
 			const car_index = carsSectors[ix][iy][delIndex];
 			cars.splice(car_index, 1); // removed from cars
@@ -326,7 +341,10 @@ function doubleClickHandler(evt) {
 			draw(); // redrawing graph
 		}
 		else {
-			const car = { x : p.x, y : p.y, id: carId++, color: carColor, angle: ((angle * Math.PI) / 180.00), dest: null };
+			const car = {
+				id: carId++, color: carColor, dest: null,
+				x : p.x, y : p.y, angle: ((angle * Math.PI) / 180.00), speed, acc
+			};
 			carsSectors[ix][iy].push(cars.length); // push index of car inside relevant sector
 			cars.push(car);
 			drawCar(car);
@@ -336,7 +354,7 @@ function doubleClickHandler(evt) {
 		if (evt.shiftKey) {
 			const l_cars = cars.length;
 			let carIndex = -1;
-			for (let i = 0; i < l_cars; i++) if ((cars[i].dest !== null) && (dist(p, WPs[cars[i].dest]) <= 20)) { carIndex = i; break; } // find the car whose destination is close by
+			for (let i = 0; i < l_cars; i++) if ((cars[i].dest !== null) && (dist(p, WPs[cars[i].dest]) <= destStarDetectRadius)) { carIndex = i; break; } // find the car whose destination is close by
 			if (carIndex < 0) return; // no car whose destination is close by
 			cars[carIndex].dest = null; // remove destination for this car an redraw graph
 			clearCanvas();
@@ -345,7 +363,7 @@ function doubleClickHandler(evt) {
 		else {
 			const l = sectors[ix][iy].length;
 			let secIndex = -1;
-			for (let i = 0; i < l; i++) if (dist(p, WPs[sectors[ix][iy][i]]) <= 5) { secIndex = i; break; } // find the "close-by" point
+			for (let i = 0; i < l; i++) if (dist(p, WPs[sectors[ix][iy][i]]) <= nodeDetectRadius) { secIndex = i; break; } // find the "close-by" point
 			if (secIndex < 0) return; // no "close-by" point found
 
 			const getCarIdStr = window.prompt("Please enter Car ID:"); // get the car id through prompt
@@ -382,7 +400,7 @@ function clickHandler(evt) {
 			// find a close-by point
 			const l = sectors[ix][iy].length;
 			let secIndex = -1;
-			for (let i = 0; i < l; i++) if (dist(p, WPs[sectors[ix][iy][i]]) <= 5) { secIndex = i; break; } // find the "close-by" point
+			for (let i = 0; i < l; i++) if (dist(p, WPs[sectors[ix][iy][i]]) <= nodeDetectRadius) { secIndex = i; break; } // find the "close-by" point
 			if (secIndex < 0) return; // no "close-by" point found - do nothing
 			const ptIndex = sectors[ix][iy][secIndex];
 			if (edgeStart < 0) { // new selection being made
@@ -390,7 +408,7 @@ function clickHandler(evt) {
 				WPs[ptIndex].selected = true;
 			} else { // must insert edge now and remove selection
 				if ((edgeStart !== ptIndex) && (NBs[edgeStart].map(x => x.idx).indexOf(ptIndex) < 0)) {
-					const wt = (speed > 0) ? ((10.0 * dist(WPs[edgeStart], WPs[ptIndex])) / speed) : 1000000; // milliseconds
+					const wt = (speed > 0) ? ((10.0 * dist(WPs[edgeStart], WPs[ptIndex])) / speed) : infWeight; // milliseconds
 					NBs[edgeStart].push({ idx : ptIndex, wt });
 				}
 				WPs[edgeStart].selected = false;
@@ -601,6 +619,7 @@ trackTransforms();
 window.onload = function () {
 	document.getElementById("nav").checked = true; // default checking of "Navigation" mode
 	document.getElementById("speed").value = 10.00; // default speed
+	document.getElementById("acc").value = 0.00; // default acceleration
 	document.getElementById("angle").value = 0.00; // default angle
 	document.getElementById("carColor").value = "#F00"; // default car color (red)
 	document.getElementById("showCars").checked = true; // defualt "Show Cars"
@@ -610,6 +629,7 @@ window.onload = function () {
 	document.getElementById("downloadPngBtn").addEventListener('click', downloadPng, false);
 	document.getElementById("downloadJsonBtn").addEventListener('click', downloadJson, false);
 	document.getElementById("speed").addEventListener('change', (evt) => { speed = parseFloat(evt.target.value.trim()); }, false);
+	document.getElementById("acc").addEventListener('change', (evt) => { acc = parseFloat(evt.target.value.trim()); }, false);
 	document.getElementById("angle").addEventListener('change', (evt) => { angle = parseFloat(evt.target.value.trim()); }, false);
 	document.getElementById("carColor").addEventListener('change', (evt) => { carColor = evt.target.value.trim(); }, false);
 	document.getElementById("showCars").addEventListener('change', () => {
@@ -619,9 +639,10 @@ window.onload = function () {
 	}, false);
 	document.getElementById("darkMode").addEventListener('change', () => {
 		useDarkMode = document.getElementById("darkMode").checked;
-		document.body.style.backgroundColor = useDarkMode ? "#000" : "#FFF";
-		document.body.style.color = useDarkMode ? "#FFF" : "#000";
-		canvas.style.backgroundColor = useDarkMode ? "#555" : "#EEE";
+		const modeName = useDarkMode ? "dark" : "light";
+		document.body.style.backgroundColor = docBgClr[modeName];
+		document.body.style.color = docTxtClr[modeName];
+		canvas.style.backgroundColor = canvasBgClr[modeName];
 	}, false);
 	document.getElementById("darkMode").checked = false;
 	document.getElementById("darkMode").click();

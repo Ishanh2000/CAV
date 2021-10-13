@@ -2,10 +2,8 @@
 import json
 import numpy as np
 
-
-def dist(p, q):
-  """ Euclidean Distance between point `p` and `q` """
-  return np.sqrt((p["x"] - q["x"])**2 + (p["y"] - q["y"])**2)
+from utils import dist
+from params import b, CLOCK_ACCURACY
 
 
 def Dijkstra(graph, src, dst):
@@ -17,7 +15,7 @@ def Dijkstra(graph, src, dst):
   cost = [float('inf') for i in range(l_WPs)] # costs are in time (milliseconds)
   parent = [None for i in range(l_WPs)] # parents
   cost[src] = 0 # cost from source = 0
-  Q = [i for i in range(l_WPs)] # all vertices in Min-Priority Queue
+  Q = [i for i in range(l_WPs)] # all vertices in Min-Priority Queue (TODO: MAKE THIS EFFICIENT)
 
   while len(Q) > 0:
     min_q_idx = np.array([cost[u] for u in Q]).argmin() # get vertex with smallest distance
@@ -37,7 +35,6 @@ def Dijkstra(graph, src, dst):
   sp.reverse()
   return sp
 
-b = 0.5 # granularity in metres
 
 def compute_future_path(graph, car, d_max):
   """ Computing Future Path of a Car """
@@ -57,7 +54,7 @@ def compute_future_path(graph, car, d_max):
       fp.append({
         "x" : ( (d-100*j*b)*e_start["x"] + 100*j*b*e_end["x"] ) / d,
         "y" : ( (d-100*j*b)*e_start["y"] + 100*j*b*e_end["y"] ) / d,
-        "e_start" : sp[i-1], "e_end" : sp[i], # indicates which edge these gaypoints were a part of
+        "e_start" : sp[i-1], "e_end" : sp[i], # indicates which edge these granulae were a part of
       })
     if (rem <= d):
       break
@@ -66,7 +63,7 @@ def compute_future_path(graph, car, d_max):
       break
     total_dist += d
 
-  return fp, sp # FP consists of gaypoints, SP consists of waypoints
+  return fp, sp # FP consists of granulae, SP consists of waypoints
 
 
 def contiguous(zone, pair):
@@ -91,12 +88,11 @@ def contiguous(zone, pair):
   
   return { "v1" : zv1, "v2" : zv2 }
 
-CLOCK_ACCURACY = 50 # microseconds
 
 
 def find_conflict_zones(id1, vel_1, ts1, fp1, id2, vel_2, ts2, fp2, d_th):
   """
-  Find conflict zones between future paths (consists of gaypoints and associated
+  Find conflict zones between future paths (consists of granulae and associated
   edges) `fp1` and `fp2`. Als make Partial Dependncy Graph (PDG) in parallel.
   """
   # UNITS: [vel_1] = [vel_2] = m/s, [ts1] = [ts2] = microseconds, [d_th] = metres
@@ -175,23 +171,72 @@ def find_conflict_zones(id1, vel_1, ts1, fp1, id2, vel_2, ts2, fp2, d_th):
 
   return C
 
-graph_json_file = "./samples/hex.json"
 
 def testContiguous():
-  print(contiguous(
+  """ Test for computing Contiguous Zones """
+  print("Conducting tests for function \"Contiguougs\"...")
+
+  combinedZone = contiguous(
     zone = { "v1" : [0, 1, 2, 3], "v2" : [8, 9] },
     pair = { "v1" : [4], "v2" : [7] },
-  ))
-  print(contiguous(
+  )
+  print(f"\tTEST 1: {combinedZone}")
+
+  combinedZone = contiguous(
     zone = { "v1" : [0, 1, 2, 3], "v2" : [8, 9] },
     pair = { "v1" : [3], "v2" : [6] },
-  ))
-  print(contiguous(
+  )
+  print(f"\tTEST 2: {combinedZone}")
+
+  combinedZone = contiguous(
     zone = { "v1" : [0, 1, 2, 3], "v2" : [8, 9] },
     pair = { "v1" : [2], "v2" : [10] },
-  ))
+  )
+  print(f"\tTEST 3: {combinedZone}")
+
+  print()
+
+
+def testFindConflictZones():
+  """ Test for computing Conflict Zones """
+  print("Conducting tests for function \"find_conflict_zones\"...")
+
+  fp1 = [
+    { "x": 140, "y": 135 }, { "x": 210, "y": 203 }, { "x": 297, "y": 209 }, { "x": 404, "y": 220 },
+    { "x": 498, "y": 216 }, { "x": 573, "y": 201 }, { "x": 603, "y": 188 }, { "x": 713, "y": 175 },
+    { "x": 838, "y": 193 }, { "x": 895, "y": 203 }, { "x": 1031, "y": 216 }, { "x": 1119, "y": 213 },
+    { "x": 962, "y": 213 }
+  ]
+  fp2 = [
+    { "x": 143, "y": 321 }, { "x": 211, "y": 274 }, { "x": 307, "y": 263 }, { "x": 401, "y": 264 },
+    { "x": 486, "y": 265 }, { "x": 550, "y": 280 }, { "x": 616, "y": 314 }, { "x": 711, "y": 372 },
+    { "x": 788, "y": 397 }, { "x": 863, "y": 368 },  { "x": 897, "y": 325 },  { "x": 944, "y": 267 }, 
+    { "x": 996, "y": 232 }, { "x": 1040, "y": 174 }, { "x": 1105, "y": 124 }
+  ]
+
+  C = find_conflict_zones(
+    id1 = 0, vel_1 = 2, ts1 = 0, fp1 = fp1,
+    id2 = 1, vel_2 = 2, ts2 = 0, fp2 = fp2,
+    d_th = 0.63
+  )
+
+  for i in range(len(C)):
+    c = C[i]
+    print(f"\tConflict Zone #{i}, Advantage ID = {c['advantage']}")
+    print(f"\t\tID = 0 : Begin = {c[0]['begin']} m, End = {c[0]['end']} m, TOA = {c[0]['toa']} us, CZ-Granuale = {c[0]['cz']}")
+    print(f"\t\tID = 1 : Begin = {c[1]['begin']} m, End = {c[1]['end']} m, TOA = {c[1]['toa']} us, CZ-Granulae = {c[1]['cz']}")
+    print()
+
+
+def conductTests():
+  """ All tests compiled """
+  testContiguous()
+  testFindConflictZones()
+
 
 if __name__ == "__main__":
+  conductTests()
+  # graph_json_file = "./samples/hex.json"
   # G = []
   # with open(graph_json_file) as gjfile:
   #   G = json.load(gjfile)
@@ -205,50 +250,3 @@ if __name__ == "__main__":
   #   print()
   
   # find_conflict_zones(cars[0]["fp"], cars[1]["fp"], d_th = 2)
-  # testContiguous()
-  fp1 = [
-    { "x": 140, "y": 135 },
-    { "x": 210, "y": 203 },
-    { "x": 297, "y": 209 },
-    { "x": 404, "y": 220 },
-    { "x": 498, "y": 216 },
-    { "x": 573, "y": 201 },
-    { "x": 603, "y": 188 },
-    { "x": 713, "y": 175 },
-    { "x": 838, "y": 193 },
-    { "x": 895, "y": 203 },
-    { "x": 1031, "y": 216 },
-    { "x": 1119, "y": 213 },
-    { "x": 962, "y": 213 }
-  ]
-  fp2 = [
-    { "x": 143, "y": 321 },
-    { "x": 211, "y": 274 },
-    { "x": 307, "y": 263 },
-    { "x": 401, "y": 264 },
-    { "x": 486, "y": 265 },
-    { "x": 550, "y": 280 },
-    { "x": 616, "y": 314 },
-    { "x": 711, "y": 372 },
-    { "x": 788, "y": 397 },
-    { "x": 863, "y": 368 }, 
-    { "x": 897, "y": 325 }, 
-    { "x": 944, "y": 267 }, 
-    { "x": 996, "y": 232 },
-    { "x": 1040, "y": 174 },
-    { "x": 1105, "y": 124 }
-  ]
-  # print(fp1)
-  # print(fp2)
-  C = find_conflict_zones(
-    id1 = 0, vel_1 = 2, ts1 = 0, fp1 = fp1,
-    id2 = 1, vel_2 = 2, ts2 = 0, fp2 = fp2,
-    d_th = 0.63
-  )
-  print(len(C))
-  print()
-
-  for c in C:
-    print(c)
-    print()
-

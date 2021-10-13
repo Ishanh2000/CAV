@@ -1,27 +1,31 @@
 # AUM SHREEGANESHAYA NAMAH||
 
 ################ IMPORTS ################
-import flask
-from flask import request, jsonify
-from flask_cors import cross_origin
+import os, globals
+from CAV import CAV
 
+parent_graph_file = os.path.join(os.getcwd(), "samples/eye.json")
 
-################ CONFIGURATIONS ################
-app = flask.Flask(__name__)
-app.config["DEBUG"] = True
+try:
+  globals.importParentGraph(parent_graph_file)
+except:
+  print("ERROR: Could not load parent graph. Exiting...")
+  exit(-1)
 
-##############################################################################
-################ APIS (SEPARATE INTO MULTIPLE FILES LATER ON) ################
-##############################################################################
+# graph should be accessible to all other files now
+CAVs = []
+for c in globals.cars:
+  cav = CAV()
+  cav.ID, cav.timestamp = c["id"], 0 # timestamp may be later changed to a random positive number
+  cav.wp, cav.dest = c["closest_wp"], c["dest"]
+  cav.nbWts = globals.NBs
+  cav.x, cav.y = (c["x"]/100), (c["y"]/100) # LHS is metres
+  cav.phi, cav.v, cav.a = c["angle"], c["speed"], c["acc"]
+  CAVs.append(cav)
 
-@app.route('/', methods=['GET'])
-@cross_origin()
-def home():
-  return jsonify({"g": ["AUM SHREEGANESHAAYA NAMAH||"]})
+for cav in CAVs:
+  print(cav)
+  print()
 
+# print(globals.WPs); print(globals.NBs); print(globals.cars); print(globals.sectors); print(globals.carsSectors)
 
-################ RUN APPLICATION ################
-if (__name__ == "__main__"):
-  
-  # run only after importing parent graph
-  app.run(host="0.0.0.0", port="5000", debug=True)
