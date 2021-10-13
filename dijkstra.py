@@ -1,9 +1,11 @@
 # AUM SHREEGANESHAAYA NAMAH||
+# This is an old file. Its contents have been migrated to "CAV.py".
+# Probably won't work on this file anymore.
 import json
 import numpy as np
 
 from utils import dist
-from params import b, CLOCK_ACCURACY
+from config import b, CLOCK_ACCURACY
 
 
 def Dijkstra(graph, src, dst):
@@ -66,34 +68,10 @@ def compute_future_path(graph, car, d_max):
   return fp, sp # FP consists of granulae, SP consists of waypoints
 
 
-def contiguous(zone, pair):
-  zv1, zv2 = zone["v1"], zone["v2"]
-  pv1, pv2 = pair["v1"][0], pair["v2"][0]
-
-  if (pv1 < zv1[0]) or (zv1[-1] < pv1):
-    if pv1 == (zv1[0] - 1):
-      zv1 = [pv1] + zv1
-    elif pv1 == (zv1[-1] + 1):
-      zv1.append(pv1)
-    else:
-      return None
-  
-  if (pv2 < zv2[0]) or (zv2[-1] < pv2):
-    if pv2 == (zv2[0] - 1):
-      zv2 = [pv2] + zv2
-    elif pv2 == (zv2[-1] + 1):
-      zv2.append(pv2)
-    else:
-      return None
-  
-  return { "v1" : zv1, "v2" : zv2 }
-
-
-
 def find_conflict_zones(id1, vel_1, ts1, fp1, id2, vel_2, ts2, fp2, d_th):
   """
   Find conflict zones between future paths (consists of granulae and associated
-  edges) `fp1` and `fp2`. Als make Partial Dependncy Graph (PDG) in parallel.
+  edges) `fp1` and `fp2`. Also make Partial Dependency Graph (PDG) in parallel.
   """
   # UNITS: [vel_1] = [vel_2] = m/s, [ts1] = [ts2] = microseconds, [d_th] = metres
   
@@ -172,27 +150,55 @@ def find_conflict_zones(id1, vel_1, ts1, fp1, id2, vel_2, ts2, fp2, d_th):
   return C
 
 
+def contiguous(zone, pair):
+  """
+  Tries to merge `zone` and `pair` if the
+  vehicles in them lie on conitguous indices
+  """
+  zv1, zv2 = zone["v1"], zone["v2"]
+  pv1, pv2 = pair["v1"][0], pair["v2"][0]
+
+  if (pv1 < zv1[0]) or (zv1[-1] < pv1):
+    if pv1 == (zv1[0] - 1):
+      zv1 = [pv1] + zv1
+    elif pv1 == (zv1[-1] + 1):
+      zv1.append(pv1)
+    else:
+      return None
+  
+  if (pv2 < zv2[0]) or (zv2[-1] < pv2):
+    if pv2 == (zv2[0] - 1):
+      zv2 = [pv2] + zv2
+    elif pv2 == (zv2[-1] + 1):
+      zv2.append(pv2)
+    else:
+      return None
+  
+  return { "v1" : zv1, "v2" : zv2 }
+
+
 def testContiguous():
   """ Test for computing Contiguous Zones """
-  print("Conducting tests for function \"Contiguougs\"...")
+  print("######## TEST FUNCTION \"CONTIGUOUS\" ########")
+  print("##############################################\n")  
 
   combinedZone = contiguous(
     zone = { "v1" : [0, 1, 2, 3], "v2" : [8, 9] },
     pair = { "v1" : [4], "v2" : [7] },
   )
-  print(f"\tTEST 1: {combinedZone}")
+  print(f"TEST 1: {combinedZone}\n")
 
   combinedZone = contiguous(
     zone = { "v1" : [0, 1, 2, 3], "v2" : [8, 9] },
     pair = { "v1" : [3], "v2" : [6] },
   )
-  print(f"\tTEST 2: {combinedZone}")
+  print(f"TEST 2: {combinedZone}\n")
 
   combinedZone = contiguous(
     zone = { "v1" : [0, 1, 2, 3], "v2" : [8, 9] },
     pair = { "v1" : [2], "v2" : [10] },
   )
-  print(f"\tTEST 3: {combinedZone}")
+  print(f"TEST 3: {combinedZone}\n")
 
   print()
 

@@ -1,12 +1,12 @@
-from msg_pub_sub import *
+from server import *
 
 class car:
 
     def __init__(self, car_sign):
-        self.car_sign = car_sign
-        self.has_reached = False
-        self.local_ti = 0
-        self.cont_end = 0
+        self.car_sign = car_sign # simila to ID
+        self.has_reached = False # require
+        self.local_ti = 0 # require
+        self.cont_end = 0 # require
         self.v_max = 0
         self.d_max = 0
         self.fp = False # Future Path Struct/List

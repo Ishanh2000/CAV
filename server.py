@@ -1,39 +1,29 @@
-# AUM SHREEGANESHAYA NAMAH||
+import redis
+import json
+import time
+from config import N_CARS, WAIT_T
 
-################ IMPORTS ################
-import os
-import flask
-from flask import request, jsonify
-from flask_cors import cross_origin
-
-import globals
+rINFO = redis.Redis(host='localhost', port=6379, db=0)
+rPDG  = redis.Redis(host='localhost', port=6379, db=1)
 
 
-################ CONFIGURATIONS ################
-app = flask.Flask(__name__)
-app.config["DEBUG"] = True
-
-##############################################################################
-################ APIS (SEPARATE INTO MULTIPLE FILES LATER ON) ################
-##############################################################################
-
-@app.route('/', methods=['GET'])
-@cross_origin()
-def home():
-  return jsonify({"g": ["AUM SHREEGANESHAAYA NAMAH||"]})
+def broadcast(info, car_sign, tp):
+    rCache = rINFO if tp == 0 else rPDG
+    rCache.set(car_sign, json.dumps(info))
 
 
-parent_graph_file = os.path.join(os.getcwd(), "samples/eye.json")
-try:
-  globals.importParentGraph(parent_graph_file)
-except:
-  print("ERROR: Could not load parent graph. Exiting...")
-  exit(-1)
-print()
-
-
-################ RUN APPLICATION ################
-if __name__ == "__main__":
-
-  # run only after importing parent graph
-  # app.run(host="0.0.0.0", port="5000", debug=True)
+def receive(tp, car_sign = "OPTIONAL"):
+    rCache = rINFO if tp == 0 else rPDG
+    indices = rCache.scan()[1]
+    arrTime = time.time()
+    while N_CARS != len(indices): 
+        indices = rCache.scan()[1]
+        if time.time() - arrTime > WAIT_T:
+            print("Failed Access, requesting to terminate car: ", car_sign)
+            return { "STATUS": -1 }
+    
+    ret_js = {}
+    for ind in indices:
+        ret_js[ind.decode('utf-8')] = json.loads(rCache.get(ind))
+    
+    return ret_js

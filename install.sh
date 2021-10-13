@@ -20,10 +20,11 @@ $PY -m pip install virtualenv
 echo "Creating virtualenv $CAV"
 $PY -m venv $CAV
 source $CAV/bin/activate
-echo "Installing numpy, flask, flask-cors"
-$PY -m pip install numpy
+echo "Installing numpy, flask, flask-cors, redis"
+$PY -m pip install numpy 
 $PY -m pip install flask
 $PY -m pip install flask-cors
+$PY -m pip install redis
 
 echo
 echo -e "\033[33;1mInsatllation successful!\033[m"
