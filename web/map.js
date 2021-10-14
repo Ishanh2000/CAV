@@ -486,22 +486,10 @@ function downloadPng() {
 }
 
 function downloadJson() {
-	const l_WPs = WPs.length;
-	// Find closest WPs to each car - use brute force for now
-	cars2 = cars.map(car => {
-		if (l_WPs < 1) { car.closest_wp = null; return car; }
-		var closest_wp = 0, closest_dist = dist(WPs[0], car);
-		for (let i = 1; i < l_WPs; i++) {
-			const tmp_dist = dist(WPs[i], car);
-			if (tmp_dist < closest_dist) { closest_wp = i; closest_dist = tmp_dist;	}
-		}
-		car.closest_wp = closest_wp;
-		return car;
-	});
 	var jsonData = {
 		"waypoints" : WPs.map((p) => { return { x : p.x, y : p.y }; }), // necessary since WPs is Array of SVGPoint
 		"neighbours" : NBs,
-		"cars" : cars2,
+		"cars" : cars,
 		"sectors" : sectors,
 		"carsSectors" : carsSectors,
 	};

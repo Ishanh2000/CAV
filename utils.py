@@ -5,7 +5,7 @@
 import numpy as np
 
 def dist(p, q):
-  """ Euclidean Distance between point `p` and `q` """
+  """ Euclidean Distance between point `p` and `q` (usually accepts/returns in cm) """
   return np.sqrt((p["x"] - q["x"])**2 + (p["y"] - q["y"])**2)
 
 

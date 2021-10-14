@@ -25,8 +25,7 @@ class CAV:
   x, y = None, None # m
   phi = None # radians
   v, v_max = None, None # m/s  (check if v_max is parameter)
-  a, a_max = None, None # m/s2 (check if a_max is parameter)
-  d_max = None
+  a, a_max, a_brake = None, None, None # m/s2 (check if a_max is parameter)
 
   Others_Info, Others_PDG = None, None # will be dictionary with CAV IDs as keys
 
@@ -42,9 +41,27 @@ class CAV:
   ######## GRAPH ALGORITHMS' STUFF ########
   #########################################
 
-  def shortest_path(self):
-    """ [Slow] Dijkstra Algorithm for Shortest Path between `self.wp` and `self.dest` """
+  def find_closest_wp(self):
+    """
+    Find closest waypoint to (`self.x`, `self.y`) for starting journey. Do not consider which
+    waypoint gives further shortest path (that requires all-pairs shortest distance algorithm).
+    """
+    self.wp, closest_dist = None, float('inf')
+    l_WPs = len(config.WPs)
+    for i in range(l_WPs):
+      d = dist({ "x" : (self.x * 100), "y" : (self.y * 100) }, config.WPs[i])
+      if d < closest_dist:
+        self.wp = i
+        closest_dist = d
+    # assume self.wp != None after this
 
+  def find_shortest_path(self):
+    """
+    [Slow] Dijkstra Algorithm for Shortest Path between `self.wp` and `self.dest`
+    Output in `self.SP` (consists only of waypoints)
+    """
+
+    self.find_closest_wp() # updates self.wp
     l_WPs = len(config.WPs)
 
     cost = [float('inf') for i in range(l_WPs)] # costs are in time (milliseconds)
@@ -71,27 +88,36 @@ class CAV:
     self.SP = sp # consists of waypoints (indices in config.WPs)
 
   def compute_future_path(self):
-    """ Computing Future Path """
+    """ Computing Future Path (made of granulae, which include CAV's current position) """
 
-    self.shortest_path() # self.SP gets updated
+    self.find_shortest_path() # self.SP gets updated
+    
+    # must add self position if not close enough to self.SP[0]
+    mustAddSelf = dist({ "x" : (self.x * 100), "y" : (self.y * 100) }, config.WPs[self.wp]) >= config.FP_INCLUSION_THRESHOLD
+    d_max = self.v_max * ((config.rho/1000) + (self.v_max/np.abs(self.a_brake)))
     l_sp = len(self.SP)
 
     fp, total_dist = [], 0.0 # future points, total distance (cm) covered by these future points
-    for i in range(1 , l_sp):
-      rem = (100.0 * self.d_max) - total_dist # remaining distance (cm)
-      e_start, e_end = config.WPs[self.SP[i-1]], config.WPs[self.SP[i]] # points of edge
+
+    for i in range(0 if mustAddSelf else 1 , l_sp):
+      rem = (100.0 * d_max) - total_dist # remaining distance (cm)
+      e_start = config.WPs[self.SP[i-1]] if (i > 0) else { "x" : (self.x * 100), "y" : (self.y * 100) } # starting waypoint of edge
+      e_end = config.WPs[self.SP[i]] # ending waypoint of edge
       d = dist(e_start, e_end) # edge length (cm)
       num_fp = np.ceil(np.min([rem, d]) / (config.b * 100))
       for j in range(int(num_fp)):
         fp.append({
           "x" : ( (d-100*j*config.b)*e_start["x"] + 100*j*config.b*e_end["x"] ) / d,
           "y" : ( (d-100*j*config.b)*e_start["y"] + 100*j*config.b*e_end["y"] ) / d,
-          "e_start" : self.SP[i-1], "e_end" : self.SP[i], # indicates which edge these granulae were a part of
+          "e_start" : self.SP[i-1] if (i > 0) else None, "e_end" : self.SP[i] # indicates the edge these granulae come from
         })
       if (rem <= d):
         break
       if i == (l_sp-1):
-        fp.append({ "x" : e_end["x"], "y" : e_end["y"], "e_start" : self.SP[i-1], "e_end" : self.SP[i] })
+        fp.append({
+          "x" : e_end["x"], "y" : e_end["y"],
+          "e_start" : self.SP[i-1] if (i > 0) else None, "e_end" : self.SP[i] # indicates the edge these granulae come from
+        })
         break
       total_dist += d
 
@@ -175,7 +201,7 @@ class CAV:
       else:
         adv = self.ID if (diff > 0) else other_cav_id
       
-      C[i] = { # "cz" is array of indices in self.FP/other.FP
+      C[i] = { # "cz" is array of indices in self.FP/other.FP, `begin` and `end` are in cm
         "self" : { "begin" : (d1_begin/100), "end" : (d1_end/100), "toa" : toa1, "cz" : v1 },
         "other" : { "begin" : (d2_begin/100), "end" : (d2_end/100), "toa" : toa2, "cz" : v2 },
         "advantage" : adv
@@ -239,7 +265,8 @@ def test_cav_sp_and_fp():
   print("########################################################\n")
   for car in config.cars:
     cav = CAV(car)
-    cav.d_max = 10 # TODO: How and where to compute this correctly?
+    cav.a_brake = -5
+    cav.v_max = 5 # TODO: How and where to compute this correctly?
     cav.compute_future_path()
     print(cav)
     print(f"Shortest Path = {cav.SP}")
@@ -254,7 +281,8 @@ def test_cav_find_conflict_zones():
   CAVs, infos = [], []
   for car in config.cars:
     cav = CAV(car)
-    cav.d_max = 10
+    cav.a_brake = -5
+    cav.v_max = 5 # TODO: How and where to compute this correctly?
     cav.compute_future_path()
     CAVs.append(cav)
     infos.append(cav.get_info())
