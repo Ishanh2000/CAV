@@ -16,7 +16,7 @@ t_b = None
 
 N_CARS = 6
 
-WAIT_T = 100
+WAIT_T = 1e6 # In Microseconds
 
 CHANNEL_INFO, CHANNEL_PDG = 0, 1
 

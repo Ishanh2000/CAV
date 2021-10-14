@@ -11,7 +11,7 @@ from server import broadcast, receive
 class CAV:
   ID, timestamp = None, 0 # microseconds (will later set to a random positive number)
   hasReached = False
-  cont_end = 0 # don't know what this is
+  cont_end = 0 # microseconds
 
   # Graph Related Members
   wp, dest = None, None
