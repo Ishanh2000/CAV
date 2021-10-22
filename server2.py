@@ -17,7 +17,7 @@ class Server2:
     while self.mode != "bc" : pass
     infoCopy = deepcopy(info)
     self.lock.acquire()
-    localTs = infoCopy["timestamp"]
+    localTs = infoCopy["timestamp"] # this is the broadasting start timestamp, not the fpStartTs
     if localTs > self.maxLocalTs: self.maxLocalTs = localTs
     self.infoBucket[infoCopy["ID"]] = infoCopy
     if len(self.infoBucket) == self.carNum: # prepare for next receive

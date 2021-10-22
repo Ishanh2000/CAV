@@ -19,6 +19,7 @@ class CAV:
   nbWts = None # similar to graph["neighbours"], but weights get updated in each iteration
   SP = None # waypoints indices
   FP = None # granula (FP) indices
+  fpStartTs = None
   CZ = None # Conflict Zones (will be dictionary with CAV IDs as keys)
   PDG = None # Partial Dependency Graph
 
@@ -97,7 +98,9 @@ class CAV:
 
   def compute_future_path(self):
     """ Computing Future Path (made of granulae, which include CAV's current position) """
-
+    
+    self.fpStartTs = self.timestamp # used in computing TOA in CZ
+    
     self.find_shortest_path() # self.SP gets updated
     
     # must add self position if not close enough to self.SP[0]
@@ -131,6 +134,8 @@ class CAV:
 
     self.FP = fp # FP consists of granulae (xy coordinates)
 
+    self.timestamp += poisson(5000) # 5 ms "average" compute time
+
   def find_conflict_zones_all_CAVs(self):
     self.CZ = {} # empty previous results
     for other_cav_id in self.Others_Info:
@@ -142,7 +147,7 @@ class CAV:
     edges) `self.FP` and `other.FP`. Also make Partial Dependency Graph (PDG) in parallel.
     """
     other = self.Others_Info[other_cav_id]
-    ts_other, v_other, fp_other = other["timestamp"], other["v"], other["FP"]
+    v_other, fp_other = other["v"], other["FP"]
     
     l_fp, l_fp_other = len(self.FP), len(fp_other)
     mp, mp_other = [], [] # edge midpoints (mp[i] is midpoint of fp[i] and fp[i+1])
@@ -202,7 +207,7 @@ class CAV:
       v2 = [p, p+1] if special else v2[1:]
 
       # Times of Arrival (microseconds)
-      toa1, toa2 = (self.timestamp + (10000*d1_begin/self.v)), (ts_other + (10000*d2_begin/v_other))
+      toa1, toa2 = (self.fpStartTs + (10000*d1_begin/self.v)), (other["fpStartTs"] + (10000*d2_begin/v_other))
       diff, adv = (toa2-toa1), None
       if np.abs(diff) <= config.CLOCK_ACCURACY:
         adv = self.ID if (self.ID < other_cav_id) else other_cav_id
@@ -217,6 +222,7 @@ class CAV:
 
     self.CZ[other_cav_id] = C
     # TODO: Calculate PDG. Ask Anshul how he will utilize the only self.CZ for computing entire CDG
+    self.timestamp += poisson(5000) # 5 ms "average" compute time
 
 
   ######## BROADCASTING STUFF ########
@@ -224,9 +230,9 @@ class CAV:
 
   def broadcast_info(self):
     config.S.broadcast({
-      "ID" : self.ID, "timestamp" : self.timestamp,
+      "ID" : self.ID, "timestamp" : self.timestamp, # this TS is broadcast start time
       "x" : self.x, "y" : self.y, "v" : self.v,
-      "FP" : self.FP
+      "FP" : self.FP, "fpStartTs" : self.fpStartTs # this TS is fpStart start time
     })
 
   def receive_others_info(self):
