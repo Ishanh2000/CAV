@@ -1,5 +1,6 @@
 # AUM SHREEGANESHAAYA NAMAH||
 import numpy as np
+from copy import deepcopy
 from threading import Lock
 
 class Server2:
@@ -14,10 +15,11 @@ class Server2:
   def broadcast(self, info):
     # assume info is dictionary with keys "ID", "timestamp" at the least
     while self.mode != "bc" : pass
+    infoCopy = deepcopy(info)
     self.lock.acquire()
-    localTs = info["timestamp"]
+    localTs = infoCopy["timestamp"]
     if localTs > self.maxLocalTs: self.maxLocalTs = localTs
-    self.infoBucket[info["ID"]] = info
+    self.infoBucket[infoCopy["ID"]] = infoCopy
     if len(self.infoBucket) == self.carNum: # prepare for next receive
       self.rxRemain = self.carNum
       self.mode = "rx"
@@ -26,7 +28,7 @@ class Server2:
   def receive(self):
     while self.mode != "rx" : pass
     offset = np.random.poisson(lam = 10000) # 10000 us = 10 ms
-    retVal = (self.infoBucket, self.maxLocalTs + offset)
+    retVal = (deepcopy(self.infoBucket), self.maxLocalTs + offset)
     self.lock.acquire()
     self.rxRemain -= 1
     if self.rxRemain == 0: # prepare for next broadcast
@@ -43,5 +45,3 @@ class Server2:
       self.rxRemain = self.carNum
       self.mode = "rx"
     self.lock.release()
-
-def testServer(): pass

@@ -16,7 +16,7 @@ class MinCAV:
     self.maxIter = maxIter
     self.iter = 0
     self.thread = Thread(target = self.execute)
-    self.logFile = open(f"minCav_{self.ID}.txt", "w")
+    self.logFile = open(f"./logFiles/minCav_{self.ID}.txt", "w")
     self.logFile.write(f"ID = {self.ID}, Boot Time = {self.timestamp}, Max Iterations = {self.maxIter}\n")
 
   def __del__(self):

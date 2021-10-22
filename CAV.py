@@ -2,15 +2,16 @@
 
 # Connected Autonomous Vehicle (CAV) model class file
 
-import os
 import numpy as np
 import config
 from utils import dist, contiguous
-from server import broadcast, receive
+from numpy.random import poisson
+from threading import Thread
 
 class CAV:
   ID, timestamp = None, 0 # microseconds (will later set to a random positive number)
   hasReached = False
+  logFile = None
   cont_end = 0 # microseconds
 
   # Graph Related Members
@@ -29,14 +30,21 @@ class CAV:
 
   Others_Info, Others_PDG = None, None # will be dictionary with CAV IDs as keys
 
-  def __init__(self, car = None):
-    self.nbWts = config.NBs # do not set when declaring as member - graph may not have been loaded
-    if car == None:
-      return
+  def __init__(self, car):
+    self.nbWts = config.NBs
     self.ID = car["id"]
     self.wp, self.dest = car["closest_wp"], car["dest"]
     self.x, self.y = (car["x"]/100), (car["y"]/100) # LHS is metres
     self.phi, self.v, self.a = car["angle"], car["speed"], car["acc"]
+    self.timestamp = poisson(100000) # 100 ms "average" boot time
+    self.thread = Thread(target = self.execute)
+    self.logFile = open(f"./logFiles/CAV_{self.ID}.txt", "w")
+    self.logFile.write(f"ID = {self.ID}, Boot Time = {self.timestamp}\n")
+  
+  def __del__(self):
+    self.logFile.write("\nExiting...\n")
+    self.logFile.close()
+
 
   ######## GRAPH ALGORITHMS' STUFF ########
   #########################################
@@ -214,27 +222,30 @@ class CAV:
   ######## BROADCASTING STUFF ########
   ####################################
 
-  def get_info(self): # mainly for broadcasting/testing purposes
-    return {
+  def broadcast_info(self):
+    config.S.broadcast({
       "ID" : self.ID, "timestamp" : self.timestamp,
       "x" : self.x, "y" : self.y, "v" : self.v,
       "FP" : self.FP
-    }
-
-  def broadcast_info(self):
-    broadcast(self.get_info(), config.CHANNEL_INFO)
+    })
 
   def receive_others_info(self):
-    self.Others_Info = receive(config.CHANNEL_INFO, str(self.ID))
+    others_Info, self.timestamp = config.S.receive()
+    del others_Info[self.ID]
+    self.Others_Info = others_Info
 
   def broadcast_PDG(self):
-    broadcast({
+    config.S.broadcast({
       "ID" : self.ID, "timestamp" : self.timestamp,
       "PDG" : self.PDG
-    }, config.CHANNEL_PDG)
+    })
   
   def receive_others_PDGs(self):
-    self.Others_PDG = receive(config.CHANNEL_PDG, str(self.ID))
+    others_PDG, self.timestamp = config.S.receive()
+    del others_PDG[self.ID]
+    self.Others_PDG = {}
+    for ID in others_PDG:
+      self.Others_PDG[ID] = others_PDG[ID]["PDG"]
 
   # Stringifying object
   def __str__(self):
@@ -248,66 +259,34 @@ class CAV:
     retStr += f"Velocity = {self.v} m/s, Acc. = {self.a} m/s2"
     return retStr
 
+  def execute(self): pass
+    # while True:
+    #   self.logFile.write(f"\nITERATION {self.iter}:\n")
+    #   if self.iter == (self.maxIter - 1): # like reaching destination
+    #     config.S.dontCare()
+    #     self.logFile.write(f"TS-{self.timestamp}: Reached Destination.\n")
+    #     self.logFile.write(f"Iterations Executed: {self.iter + 1} / {self.maxIter}\n")
+    #     exit(0)      
 
-def test_cav_init():
-  print("######## TEST CAV INIT ########")
-  print("###############################\n")
-  c = CAV()
-  c.ID, c.timestamp = 0, 90990
-  c.wp, c.dest = 0, 3
-  c.x, c.y, c.phi, c.v, c.a = 90, 906, 0.785, 10, -1
-  print(c)
-  print()
+    #   self.timestamp += poisson(10000) # 10 ms
 
+    #   bcInfo = { "ID" : self.ID, "timestamp" : self.timestamp, "other": randStr() }
+    #   self.logFile.write(f"TS-{self.timestamp}: Sending info = {bcInfo}\n")
+    #   S.broadcast(bcInfo)
 
-def test_cav_sp_and_fp():
-  print("######## TEST CAV SHORTEST PATH AND FUTURE PATH ########")
-  print("########################################################\n")
-  for car in config.cars:
-    cav = CAV(car)
-    cav.a_brake = -5
-    cav.v_max = 5 # TODO: How and where to compute this correctly?
-    cav.compute_future_path()
-    print(cav)
-    print(f"Shortest Path = {cav.SP}")
-    print(f"Future Path = {cav.FP}")
-    print()
-  print()
+    #   otherInfo, self.timestamp = S.receive()
+    #   self.logFile.write(f"TS-{self.timestamp}: Receiving info = {otherInfo}\n")
 
+    #   self.timestamp += poisson(10000) # 10 ms
 
-def test_cav_find_conflict_zones():
-  print("######## TEST CAV FIND CONFLICT ZONES ########")
-  print("##############################################\n")
-  CAVs, infos = [], []
-  for car in config.cars:
-    cav = CAV(car)
-    cav.a_brake = -5
-    cav.v_max = 5 # TODO: How and where to compute this correctly?
-    cav.compute_future_path()
-    CAVs.append(cav)
-    infos.append(cav.get_info())
-  
-  for i in range(3):
-    # manually broadcasting for now
-    other_a, other_b = infos[(i+1)%3], infos[(i+2)%3]
-    id_a, id_b = other_a["ID"], other_b["ID"]
-    CAVs[i].Others_Info = { id_a : other_a, id_b : other_b }
-    CAVs[i].find_conflict_zones_all_CAVs()
-    print(CAVs[i])
-    print(CAVs[i].CZ)
-    print()
-  
-  print()
+    #   bcInfo = { "ID" : self.ID, "timestamp" : self.timestamp, "other": randStr() }
+    #   self.logFile.write(f"TS-{self.timestamp}: Sending info = {bcInfo}\n")
+    #   S.broadcast(bcInfo)
 
+    #   otherInfo, self.timestamp = S.receive()
+    #   self.logFile.write(f"TS-{self.timestamp}: Receiving info = {otherInfo}\n")
 
-def conductTests():
-  test_cav_init()
-  test_cav_sp_and_fp()
-  test_cav_find_conflict_zones()
+    #   self.timestamp += poisson(10000) # 10 ms
 
-
-if __name__ == "__main__":
-  config.importParentGraph(os.path.join(os.getcwd(), "samples/hex2.json"))
-  conductTests()
-
+    #   self.iter += 1
 

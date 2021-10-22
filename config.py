@@ -3,22 +3,20 @@
 # Global Variables and Constant Parameters like graphs are imported using this file
 
 import json
+from server2 import Server2 as Server
 
 b = 0.5 # granularity, metres (required for computing FP)
-
 CLOCK_ACCURACY = 50 # microseconds (required for CZ detection)
-
 T = 50 # milliseconds (periodic broadcast time period)
-
 rho = 100 # milliseconds (worst end to end delay)
+d_th = 0.63 # metres
+S : Server = None # will initialize later
 
+# modifications by Utkarsh Gupta
 N_CARS = 6
-
 WAIT_T = 1e6 # In Microseconds
-
 CHANNEL_INFO, CHANNEL_PDG = 0, 1
 
-d_th = 0.63 # metres
 
 # radius within which CAV's position is considered same as the closest waypoint's position
 # affects whether or not CAV's position is used in FP computation)
@@ -33,6 +31,18 @@ def importParentGraph(fname):
     cars = G["cars"]
     sectors = G["sectors"]
     carsSectors = G["carsSectors"]
+
+def startServer():
+  global S, cars
+  S = Server(carNum = len(cars))
+
+
+
+
+
+
+
+
 
 #### DESCRIPTION OF GRAPH ####
 

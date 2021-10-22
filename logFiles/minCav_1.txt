@@ -1,37 +1,61 @@
-ID = 1, Boot Time = 99554, Max Iterations = 6
+ID = 1, Boot Time = 100720, Max Iterations = 10
 
 ITERATION 0:
-TS-109540: Sending info = {'ID': 1, 'timestamp': 109540, 'other': '0032541442'}
-TS-120381: Receiving info = {0: {'ID': 0, 'timestamp': 109975, 'other': '5312044003'}, 1: {'ID': 1, 'timestamp': 109540, 'other': '0032541442'}, 2: {'ID': 2, 'timestamp': 110411, 'other': '4052400554'}, 3: {'ID': 3, 'timestamp': 110127, 'other': '2235503331'}, 4: {'ID': 4, 'timestamp': 109535, 'other': '4403310330'}}
-TS-130372: Sending info = {'ID': 1, 'timestamp': 130372, 'other': '4240121314'}
-TS-140788: Receiving info = {2: {'ID': 2, 'timestamp': 130352, 'other': '0451100104'}, 4: {'ID': 4, 'timestamp': 130448, 'other': '4352315132'}, 0: {'ID': 0, 'timestamp': 130541, 'other': '4434003201'}, 3: {'ID': 3, 'timestamp': 130502, 'other': '2230104121'}, 1: {'ID': 1, 'timestamp': 130372, 'other': '4240121314'}}
+TS-110794: Sending info = {'ID': 1, 'timestamp': 110794, 'other': '2354422303'}
+TS-120804: Receiving info = {0: {'ID': 0, 'timestamp': 110164, 'other': '2043204351'}, 1: {'ID': 1, 'timestamp': 110794, 'other': '2354422303'}, 2: {'ID': 2, 'timestamp': 109555, 'other': '5131110443'}, 3: {'ID': 3, 'timestamp': 109907, 'other': '4112530205'}, 4: {'ID': 4, 'timestamp': 110527, 'other': '0052144114'}}
+TS-130726: Sending info = {'ID': 1, 'timestamp': 130726, 'other': '5545003215'}
+TS-140889: Receiving info = {1: {'ID': 1, 'timestamp': 130726, 'other': '5545003215'}, 2: {'ID': 2, 'timestamp': 130755, 'other': '3543543135'}, 0: {'ID': 0, 'timestamp': 130885, 'other': '1135512420'}, 4: {'ID': 4, 'timestamp': 130851, 'other': '3204014335'}, 3: {'ID': 3, 'timestamp': 130823, 'other': '3143112501'}}
 
 ITERATION 1:
-TS-160884: Sending info = {'ID': 1, 'timestamp': 160884, 'other': '1213012452'}
-TS-170904: Receiving info = {3: {'ID': 3, 'timestamp': 160506, 'other': '4025054515'}, 2: {'ID': 2, 'timestamp': 160663, 'other': '0344202415'}, 0: {'ID': 0, 'timestamp': 160613, 'other': '3024530420'}, 4: {'ID': 4, 'timestamp': 160558, 'other': '4540350453'}, 1: {'ID': 1, 'timestamp': 160884, 'other': '1213012452'}}
-TS-180974: Sending info = {'ID': 1, 'timestamp': 180974, 'other': '2331514135'}
-TS-191136: Receiving info = {2: {'ID': 2, 'timestamp': 180922, 'other': '3125124424'}, 1: {'ID': 1, 'timestamp': 180974, 'other': '2331514135'}, 4: {'ID': 4, 'timestamp': 180841, 'other': '1512055203'}, 3: {'ID': 3, 'timestamp': 180979, 'other': '2141114400'}, 0: {'ID': 0, 'timestamp': 180934, 'other': '4011043215'}}
+TS-160787: Sending info = {'ID': 1, 'timestamp': 160787, 'other': '1404501213'}
+TS-171285: Receiving info = {1: {'ID': 1, 'timestamp': 160787, 'other': '1404501213'}, 2: {'ID': 2, 'timestamp': 160707, 'other': '3514433034'}, 3: {'ID': 3, 'timestamp': 161133, 'other': '2433004444'}, 4: {'ID': 4, 'timestamp': 160795, 'other': '2253354144'}, 0: {'ID': 0, 'timestamp': 160555, 'other': '2140143040'}}
+TS-181273: Sending info = {'ID': 1, 'timestamp': 181273, 'other': '4204454034'}
+TS-191289: Receiving info = {3: {'ID': 3, 'timestamp': 180925, 'other': '1143112222'}, 4: {'ID': 4, 'timestamp': 181238, 'other': '2003343131'}, 2: {'ID': 2, 'timestamp': 181034, 'other': '4545440435'}, 1: {'ID': 1, 'timestamp': 181273, 'other': '4204454034'}, 0: {'ID': 0, 'timestamp': 180801, 'other': '3451124441'}}
 
 ITERATION 2:
-TS-211280: Sending info = {'ID': 1, 'timestamp': 211280, 'other': '0542033450'}
-TS-221334: Receiving info = {4: {'ID': 4, 'timestamp': 211033, 'other': '3154515103'}, 3: {'ID': 3, 'timestamp': 210847, 'other': '3441332030'}, 0: {'ID': 0, 'timestamp': 210656, 'other': '0153114502'}, 1: {'ID': 1, 'timestamp': 211280, 'other': '0542033450'}, 2: {'ID': 2, 'timestamp': 210992, 'other': '0104320342'}}
-TS-231341: Sending info = {'ID': 1, 'timestamp': 231341, 'other': '5024230051'}
-TS-241383: Receiving info = {1: {'ID': 1, 'timestamp': 231341, 'other': '5024230051'}, 4: {'ID': 4, 'timestamp': 231350, 'other': '4245111024'}, 3: {'ID': 3, 'timestamp': 231504, 'other': '5552322314'}, 2: {'ID': 2, 'timestamp': 231056, 'other': '0014502233'}, 0: {'ID': 0, 'timestamp': 231274, 'other': '3341322234'}}
+TS-211310: Sending info = {'ID': 1, 'timestamp': 211310, 'other': '5511532141'}
+TS-221344: Receiving info = {2: {'ID': 2, 'timestamp': 211429, 'other': '3454130335'}, 1: {'ID': 1, 'timestamp': 211310, 'other': '5511532141'}, 0: {'ID': 0, 'timestamp': 211133, 'other': '2045333223'}, 4: {'ID': 4, 'timestamp': 211218, 'other': '2525501335'}, 3: {'ID': 3, 'timestamp': 211187, 'other': '2210251500'}}
+TS-231191: Sending info = {'ID': 1, 'timestamp': 231191, 'other': '4230325224'}
+TS-241607: Receiving info = {1: {'ID': 1, 'timestamp': 231191, 'other': '4230325224'}, 0: {'ID': 0, 'timestamp': 231361, 'other': '2104045555'}, 4: {'ID': 4, 'timestamp': 231233, 'other': '0330450400'}, 3: {'ID': 3, 'timestamp': 231129, 'other': '1415125324'}, 2: {'ID': 2, 'timestamp': 231473, 'other': '3122312222'}}
 
 ITERATION 3:
-TS-261460: Sending info = {'ID': 1, 'timestamp': 261460, 'other': '3115025115'}
-TS-271518: Receiving info = {4: {'ID': 4, 'timestamp': 261397, 'other': '0341450221'}, 1: {'ID': 1, 'timestamp': 261460, 'other': '3115025115'}, 0: {'ID': 0, 'timestamp': 261579, 'other': '1045335125'}, 2: {'ID': 2, 'timestamp': 261327, 'other': '4014044121'}, 3: {'ID': 3, 'timestamp': 261311, 'other': '4133132004'}}
-TS-281629: Sending info = {'ID': 1, 'timestamp': 281629, 'other': '1441234151'}
-TS-291883: Receiving info = {1: {'ID': 1, 'timestamp': 281629, 'other': '1441234151'}, 3: {'ID': 3, 'timestamp': 281730, 'other': '5250401501'}, 0: {'ID': 0, 'timestamp': 281521, 'other': '1000023421'}, 4: {'ID': 4, 'timestamp': 281479, 'other': '4004531503'}, 2: {'ID': 2, 'timestamp': 281667, 'other': '4545545033'}}
+TS-261435: Sending info = {'ID': 1, 'timestamp': 261435, 'other': '5225521254'}
+TS-271700: Receiving info = {0: {'ID': 0, 'timestamp': 261351, 'other': '4420035033'}, 1: {'ID': 1, 'timestamp': 261435, 'other': '5225521254'}, 2: {'ID': 2, 'timestamp': 261628, 'other': '5104543233'}, 3: {'ID': 3, 'timestamp': 261501, 'other': '4133220425'}, 4: {'ID': 4, 'timestamp': 261623, 'other': '4151215553'}}
+TS-281631: Sending info = {'ID': 1, 'timestamp': 281631, 'other': '2024214433'}
+TS-291543: Receiving info = {3: {'ID': 3, 'timestamp': 281610, 'other': '5034101232'}, 1: {'ID': 1, 'timestamp': 281631, 'other': '2024214433'}, 2: {'ID': 2, 'timestamp': 281677, 'other': '5434153522'}, 4: {'ID': 4, 'timestamp': 281779, 'other': '3010353001'}, 0: {'ID': 0, 'timestamp': 281449, 'other': '2444103331'}}
 
 ITERATION 4:
-TS-311844: Sending info = {'ID': 1, 'timestamp': 311844, 'other': '2551501314'}
-TS-321990: Receiving info = {3: {'ID': 3, 'timestamp': 311902, 'other': '0403522201'}, 2: {'ID': 2, 'timestamp': 311712, 'other': '3402524051'}, 4: {'ID': 4, 'timestamp': 311611, 'other': '3024100444'}, 1: {'ID': 1, 'timestamp': 311844, 'other': '2551501314'}, 0: {'ID': 0, 'timestamp': 311824, 'other': '4552525140'}}
-TS-332086: Sending info = {'ID': 1, 'timestamp': 332086, 'other': '0250233451'}
-TS-341926: Receiving info = {3: {'ID': 3, 'timestamp': 331722, 'other': '5452224102'}, 2: {'ID': 2, 'timestamp': 331737, 'other': '5322012553'}, 4: {'ID': 4, 'timestamp': 331837, 'other': '3353212112'}, 0: {'ID': 0, 'timestamp': 331965, 'other': '5023531320'}, 1: {'ID': 1, 'timestamp': 332086, 'other': '0250233451'}}
+TS-311573: Sending info = {'ID': 1, 'timestamp': 311573, 'other': '1311255011'}
+TS-321892: Receiving info = {1: {'ID': 1, 'timestamp': 311573, 'other': '1311255011'}, 4: {'ID': 4, 'timestamp': 311669, 'other': '4245001220'}, 0: {'ID': 0, 'timestamp': 311974, 'other': '2431402212'}, 3: {'ID': 3, 'timestamp': 311806, 'other': '2213410350'}}
+TS-331899: Sending info = {'ID': 1, 'timestamp': 331899, 'other': '1325425304'}
+TS-341978: Receiving info = {0: {'ID': 0, 'timestamp': 331987, 'other': '2305235244'}, 3: {'ID': 3, 'timestamp': 331959, 'other': '4500501014'}, 1: {'ID': 1, 'timestamp': 331899, 'other': '1325425304'}, 4: {'ID': 4, 'timestamp': 331969, 'other': '3210402455'}}
 
 ITERATION 5:
-TS-352023: Reached Destination.
-Iterations Executed: 6 / 6
+TS-361943: Sending info = {'ID': 1, 'timestamp': 361943, 'other': '5400411004'}
+TS-371924: Receiving info = {1: {'ID': 1, 'timestamp': 361943, 'other': '5400411004'}, 3: {'ID': 3, 'timestamp': 361706, 'other': '4315124543'}, 4: {'ID': 4, 'timestamp': 361792, 'other': '3530043030'}, 0: {'ID': 0, 'timestamp': 362058, 'other': '1130132051'}}
+TS-381886: Sending info = {'ID': 1, 'timestamp': 381886, 'other': '2553124253'}
+TS-392333: Receiving info = {4: {'ID': 4, 'timestamp': 382153, 'other': '3153432323'}, 1: {'ID': 1, 'timestamp': 381886, 'other': '2553124253'}, 0: {'ID': 0, 'timestamp': 382036, 'other': '1211001251'}, 3: {'ID': 3, 'timestamp': 382268, 'other': '0143042534'}}
+
+ITERATION 6:
+TS-412232: Sending info = {'ID': 1, 'timestamp': 412232, 'other': '1313304415'}
+TS-422219: Receiving info = {4: {'ID': 4, 'timestamp': 411841, 'other': '5201355302'}, 1: {'ID': 1, 'timestamp': 412232, 'other': '1313304415'}, 3: {'ID': 3, 'timestamp': 412216, 'other': '2514154344'}}
+TS-432127: Sending info = {'ID': 1, 'timestamp': 432127, 'other': '3011543403'}
+TS-442175: Receiving info = {4: {'ID': 4, 'timestamp': 432351, 'other': '4032123034'}, 3: {'ID': 3, 'timestamp': 432344, 'other': '4000533245'}, 1: {'ID': 1, 'timestamp': 432127, 'other': '3011543403'}}
+
+ITERATION 7:
+TS-462031: Sending info = {'ID': 1, 'timestamp': 462031, 'other': '1412003254'}
+TS-472069: Receiving info = {1: {'ID': 1, 'timestamp': 462031, 'other': '1412003254'}}
+TS-481975: Sending info = {'ID': 1, 'timestamp': 481975, 'other': '0005550240'}
+TS-491910: Receiving info = {1: {'ID': 1, 'timestamp': 481975, 'other': '0005550240'}}
+
+ITERATION 8:
+TS-511755: Sending info = {'ID': 1, 'timestamp': 511755, 'other': '5433323020'}
+TS-521705: Receiving info = {1: {'ID': 1, 'timestamp': 511755, 'other': '5433323020'}}
+TS-531785: Sending info = {'ID': 1, 'timestamp': 531785, 'other': '0141312232'}
+TS-542023: Receiving info = {1: {'ID': 1, 'timestamp': 531785, 'other': '0141312232'}}
+
+ITERATION 9:
+TS-552090: Reached Destination.
+Iterations Executed: 10 / 10
 
 Exiting...
