@@ -55,6 +55,39 @@ def test_cav_find_conflict_zones():
   print()
 
 
+def test_cav_upto_construct_CDG():
+  print("######## TEST CAV UPTO CONSTRUCT CDG #########")
+  print("##############################################\n")
+
+  CAVs = []
+  for car in config.cars:
+    cav = CAV(car)
+    cav.a_brake = -5
+    cav.v_max = 5 # TODO: How and where to compute this correctly?
+    cav.compute_future_path()
+    CAVs.append(cav)
+  
+  for i in range(3):
+    CAVs[i].broadcast_info()
+  
+  for i in range(3):
+    CAVs[i].receive_others_info()
+    CAVs[i].find_conflict_zones_all_CAVs()
+
+  for i in range(3):
+    CAVs[i].broadcast_PDG()
+
+  for i in range(3):
+    CAVs[i].receive_others_PDGs()
+    CAVs[i].construct_CDG()
+    print(f"ID = {CAVs[i].ID}")
+    print(f"PDG =", CAVs[i].PDG)
+    print(f"Others_PDGs =", CAVs[i].Others_PDG)
+    print(f"CDG =", CAVs[i].CDG)
+    print()
+  
+  print()
+
 if __name__ == "__main__":
   
   config.importParentGraph(os.path.join(os.getcwd(), "samples/hex2.json"))
@@ -63,6 +96,7 @@ if __name__ == "__main__":
   test_cav_init()
   test_cav_sp_and_fp()
   test_cav_find_conflict_zones()
+  test_cav_upto_construct_CDG()
 
 
 

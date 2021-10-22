@@ -22,6 +22,8 @@ class CAV:
   fpStartTs = None
   CZ = None # Conflict Zones (will be dictionary with CAV IDs as keys)
   PDG = None # Partial Dependency Graph
+  carIndices = None # dictionary
+  CDG = None # Complete Dependency Graph
 
   # Dynamics Related Members
   x, y = None, None # m
@@ -137,6 +139,18 @@ class CAV:
     self.timestamp += poisson(5000) # 5 ms "average" compute time
 
   def find_conflict_zones_all_CAVs(self):
+    # first compute self.carIndices
+    self.carIndices = {}
+    IDs = [self.ID]
+    for other_cav_id in self.Others_Info:
+      IDs.append(other_cav_id)
+    IDs.sort()
+    l_IDs = len(IDs)
+    for i in range(l_IDs):
+      self.carIndices[IDs[i]] = i
+
+    self.PDG = np.zeros((l_IDs, l_IDs)) # lower ID gets lower index (as indicated by above computation)
+
     self.CZ = {} # empty previous results
     for other_cav_id in self.Others_Info:
       self.find_conflict_zones(other_cav_id)
@@ -221,8 +235,21 @@ class CAV:
       }
 
     self.CZ[other_cav_id] = C
-    # TODO: Calculate PDG. Ask Anshul how he will utilize the only self.CZ for computing entire CDG
+    
+    if l_C > 0: # for now considering only C[0] for PDG
+      rowIndex, colIndex = self.carIndices[self.ID], self.carIndices[other_cav_id] # self.ID yields to other_cav_id
+      if C[0]["advantage"] == self.ID: rowIndex, colIndex = colIndex, rowIndex # other_cav_id yields to self.ID
+      self.PDG[rowIndex][colIndex] = 1
+
     self.timestamp += poisson(5000) # 5 ms "average" compute time
+
+  def construct_CDG(self):
+    """ Construct CDG from `self.PDG` and `self.Others_PDG` and store it in `self.CDG` """
+    l_carIndices = len(self.carIndices)
+    self.CDG = np.zeros((l_carIndices, l_carIndices)) # lower index for lower ID
+    self.CDG = np.logical_or(self.CDG, self.PDG)
+    for PDG in self.Others_PDG:
+      self.CDG = np.logical_or(self.CDG, self.Others_PDG[PDG])
 
 
   ######## BROADCASTING STUFF ########
