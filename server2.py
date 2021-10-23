@@ -1,7 +1,8 @@
 # AUM SHREEGANESHAAYA NAMAH||
-import numpy as np
+from numpy.random import poisson
 from copy import deepcopy
 from threading import Lock
+import config
 
 class Server2:
   def __init__(self, carNum = 0):
@@ -27,7 +28,7 @@ class Server2:
 
   def receive(self):
     while self.mode != "rx" : pass
-    offset = np.random.poisson(lam = 10000) # 10000 us = 10 ms
+    offset = poisson(config.poi_avg["server"])
     retVal = (deepcopy(self.infoBucket), self.maxLocalTs + offset)
     self.lock.acquire()
     self.rxRemain -= 1

@@ -12,6 +12,17 @@ rho = 100 # milliseconds (worst end to end delay)
 d_th = 0.63 # metres
 S : Server = None # will initialize later
 
+# Average computing times (Poisson distribution) in microseconds (us)
+poi_avg = {
+  "boot_time" : 1000, # 1 ms
+  "compute_future_path" : 1000, # 1 ms
+  "find_conflict_zones" : 1000, # 1 ms
+  "construct_CDG" : 1000, # 1 ms
+  "motion_planner" : 1000, # 1 ms
+  "motion_controller" : 1000, # 1 ms
+  "server" : 1000, # 1 ms
+}
+
 # modifications by Utkarsh Gupta
 N_CARS = 6
 WAIT_T = 1e6 # In Microseconds

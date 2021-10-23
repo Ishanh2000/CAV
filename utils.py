@@ -3,6 +3,7 @@
 # Common Utility Functions reside here.
 
 import numpy as np
+import json
 
 def dist(p, q):
   """ Euclidean Distance between point `p` and `q` (usually accepts/returns in cm) """
@@ -35,6 +36,8 @@ def contiguous(zone, pair):
   
   return { "self" : zv1, "other" : zv2 }
 
+def objStr(obj):
+  return json.dumps(obj, indent=2)
 
 def test_contiguous():
   """ Test for computing Contiguous Zones """
