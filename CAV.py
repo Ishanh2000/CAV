@@ -9,8 +9,9 @@ from numpy.random import poisson
 from threading import Thread
 
 class CAV:
+  iter = None # iteration number
   ID, timestamp = None, 0 # microseconds (will later set to a random positive number)
-  logFile, trajFile = None, None # log and trajectory
+  logFile, trajFile, trajFileJson = None, None, None # log and trajectory
   cont_end = 0 # microseconds ### @USELESS ###
 
   # Graph Related Members
@@ -37,6 +38,7 @@ class CAV:
   def __init__(self, car):
     """ Initialization aka `Booting` """
     self.nbWts = config.NBs
+    self.iter = 0
     self.ID = car["id"]
     self.dest = car["dest"]
     self.x, self.y = (car["x"]/100), (car["y"]/100) # LHS is metres
@@ -57,12 +59,16 @@ class CAV:
     self.logFile.write(f"{self.__str__()}\n")
     self.trajFile = open(f"./logFiles/CAV_{self.ID}_traj.csv", "w")
     self.trajFile.write(f"ts(ms),x(cm),y(cm),phi(degrees),v(m/s),lookAhead,lookAheadX(cm),lookAheadY(cm)\n")
+    self.trajFileJson = open(f"./logFiles/CAV_{self.ID}_traj.json", "w")
+    self.trajFileJson.write(f"[")
   
   def __del__(self):
     """ Destructor """
     self.logFile.write("\nExiting...\n")
     self.logFile.close()
     self.trajFile.close()
+    self.trajFileJson.write("\n]")
+    self.trajFileJson.close()
 
   def __str__(self):
     """ Stringification """
@@ -354,6 +360,10 @@ class CAV:
     tmp = config.WPs[self.lookAhead]
     self.logFile.write(f"\nlookAhead = {self.lookAhead} : ({tmp['x']/100} m, {tmp['y']/100} m)\n")
     self.trajFile.write(f"{self.timestamp/1000},{self.x*100},{self.y*100},{self.phi*180/np.pi},{self.v},{self.lookAhead},{tmp['x']},{tmp['y']}\n")
+    self.trajFileJson.write(f"{',' if (self.iter != 0) else ''}\n  " + '{')
+    self.trajFileJson.write(f" \"ts\" : {self.timestamp/1000},")
+    self.trajFileJson.write(f" \"x\" : {self.x*100}, \"y\" : {self.y*100},")
+    self.trajFileJson.write(f" \"phi\" : {self.phi * 180.0 / np.pi}, \"v\" : {self.v} " + '}')
 
   ######## BROADCASTING STUFF ########
   ####################################
@@ -386,16 +396,15 @@ class CAV:
     self.logFile.write(f"\nOthers_PDG\n{self.Others_PDG}\n")
 
   def execute(self):
-    iter = 0
 
     while True: # main loop
     
-      self.logFile.write(f"\n######## ITERATION {iter}: ########\n")
+      self.logFile.write(f"\n######## ITERATION {self.iter}: ########\n")
 
       if self.hasReachedDest():
         config.S.dontCare()
         self.logFile.write(f"TS-{self.timestamp}: Reached Destination.\n")
-        self.logFile.write(f"Iterations Executed: {iter + 1}\n")
+        self.logFile.write(f"Iterations Executed: {self.iter + 1}\n")
         exit(0)      
 
       self.compute_future_path()
@@ -409,5 +418,5 @@ class CAV:
       self.motion_planner()
       self.motion_controller()
 
-      iter += 1
+      self.iter += 1
 

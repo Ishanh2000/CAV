@@ -17,7 +17,7 @@ const edgeWidth = 2, arrowHeadLength = 10, arrowHeadWidth = 10, edgeClr = "#080"
 const wtStokeWidht = 1, wtClr = { light : "#000", dark: "#000" }, wtFont = "15px Arial", infWeight = 1000000; // milliseconds
 
 // car related parameters
-const carWidth = 150, carLength = 200, carDetectRadius = 100, carIdFont = "50px Arial";
+const carWidth = 150, carLength = 200, carDetectRadius = 100, carIdFont = "40px Arial", carDetailsFont = "30px Arial";
 const lightCarClrs = [ "#FC0", "#3CF", "#3C3", "#FFF" ];
 
 // destination star related paramters
@@ -107,9 +107,12 @@ function drawCar(car) {
 	ctx.lineTo(20 + (carLength/2), 3 + (carWidth/2));
 	ctx.strokeStyle = "#000";
 	ctx.stroke();
-	ctx.font = carIdFont;
 	ctx.fillStyle = ctx.strokeStyle = (lightCarClrs.indexOf(car.color) < 0) ? "#FFF" : "#000"; // use white on dark-coloured cars
-	ctx.strokeText(`${car.id}`, -10, 15);
+	ctx.font = carIdFont;
+	ctx.strokeText(`${car.id}`, -15, -30);
+	ctx.font = carDetailsFont;
+	if (car.ts) ctx.strokeText(`${car.ts.toFixed(0)} ms`, -15, 30);
+	ctx.strokeText(`${car.speed.toFixed(2)} m/s`, -15, 60);
 	ctx.restore(); // restore the context to its untranslated/unrotated state
 }
 
@@ -521,7 +524,7 @@ async function importJson() {
 				cars = jsonData.cars;
 				carsSectors = jsonData.carsSectors;
 				carId = 0;
-				cars.forEach(car => { if (car.id > carId) carId = (car.id + 1); });
+				cars.forEach(car => { if (car.id >= carId) carId = (car.id + 1); });
 				homeTransform();
 			}
 			catch (ex) {
@@ -648,3 +651,48 @@ window.onbeforeunload = function() { // not satisfactory
 /********** BEGIN ACTUAL CODING HERE **********/
 /**********************************************/
 
+class Tracer {
+	data = {} // where car data is stored
+	nextIdx = 0 // index in this.trace to be shown
+	trace = [] // { ts, id, x, y, phi, v }
+	mode = "" // or "rewind"
+
+	setData (id, trajData) { // carId, array[ { ts, x, y, phi, v } ]
+		this.data[id] = trajData;
+		trajData.forEach((entry) => {
+			this.trace.push({ ...entry, id });
+		});
+		this.trace.sort((a, b) => (a.ts - b.ts));
+		this.next = 0;
+	}
+
+	next() {
+		if (this.trace.length < 1) { console.log("NOTHING TO TRACE!!!"); return; }
+		if (this.nextIdx == this.trace.length) {
+			if (mode !== "rewind") { console.log("END OF TRACE!!!"); return; }
+			else this.nextIdx = 0;
+		}
+
+		const tmpCar = this.trace[this.nextIdx]; // ts, id, x, y, phi, v
+
+		// find car with id = tmpCar.id
+		const _idx = cars.findIndex(c => (c.id === tmpCar.id));
+		if (_idx === -1) return; // can do nothing
+		
+		const { ix, iy } = getSectorIndex(cars[_idx]);
+		carsSectors[ix][iy] = carsSectors[ix][iy].filter(x => (x !== _idx)); // removed _idx from carsSectors
+		
+		const newIxIy = getSectorIndex(tmpCar);
+		carsSectors[newIxIy.ix][newIxIy.iy].push(_idx);
+
+		cars[_idx].ts = tmpCar.ts;
+		cars[_idx].x = tmpCar.x; cars[_idx].y = tmpCar.y;
+		cars[_idx].angle = ((tmpCar.phi * Math.PI) / 180.00);
+		cars[_idx].speed = tmpCar.v;
+		
+		clearCanvas();
+		draw();
+
+		this.nextIdx++;
+	}
+}
