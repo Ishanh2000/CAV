@@ -10,7 +10,7 @@ from threading import Thread
 
 class CAV:
   ID, timestamp = None, 0 # microseconds (will later set to a random positive number)
-  logFile = None
+  logFile, trajFile = None, None # log and trajectory
   cont_end = 0 # microseconds ### @USELESS ###
 
   # Graph Related Members
@@ -47,6 +47,7 @@ class CAV:
       if d < closest_dist:
         self.lookAhead = i
         closest_dist = d
+    self.find_shortest_path() # computes `self.SP` from `self.lookAhead` and `self.dest`
 
     self.phi, self.v, self.a = car["angle"], 0, 0 # removed car["speed"], car["acc"]
     self.timestamp = self.lastMcTs = poisson(config.poi_avg["boot_time"])
@@ -54,11 +55,14 @@ class CAV:
     self.logFile = open(f"./logFiles/CAV_{self.ID}.txt", "w")
     self.logFile.write(f"ID = {self.ID}, Boot Time = {self.timestamp}\n")
     self.logFile.write(f"{self.__str__()}\n")
+    self.trajFile = open(f"./logFiles/CAV_{self.ID}_traj.csv", "w")
+    self.trajFile.write(f"ts(ms),x(cm),y(cm),phi(degrees),v(m/s),lookAhead,lookAheadX(cm),lookAheadY(cm)\n")
   
   def __del__(self):
     """ Destructor """
     self.logFile.write("\nExiting...\n")
     self.logFile.close()
+    self.trajFile.close()
 
   def __str__(self):
     """ Stringification """
@@ -72,15 +76,23 @@ class CAV:
     retStr += f"lastMcTs = {self.lastMcTs}\n"
     retStr += f"Position = ({self.x} m, {self.y} m), Angle (phi) = {self.phi} rad\n"
     retStr += f"v = {self.v} m/s, v_max = {self.v_max} m/s, a_brake = {self.a_brake} m/s2\n"
+    retStr += f"Shortest Path = {self.SP}\n"
     return retStr
 
   ######## GRAPH ALGORITHMS' STUFF ########
   #########################################
 
+  def hasReachedDest(self):
+    """ Return whether destination has been reached. Takes negligible time. """
+    dt = self.timestamp - self.lastMcTs # us
+    curr_x = (100 * self.x) + ((self.v * np.cos(self.phi) * dt) / (10**4)) # cm
+    curr_y = (100 * self.y) + ((self.v * np.sin(self.phi) * dt) / (10**4)) # cm
+    return dist({ "x" : curr_x, "y" : curr_y }, config.WPs[self.dest]) <= (config.DEST_REACH_THRESHOLD * 100)
+
   def find_shortest_path(self):
     """
     [Slow] Dijkstra Algorithm for Shortest Path between `self.lookAhead` and `self.dest`
-    Output in `self.SP` (consists only of waypoints's indices in config.WPs)
+    Output in `self.SP` (consists only of waypoints's indices in config.WPs). Used only once for now.
     """
 
     l_WPs = len(config.WPs)
@@ -110,42 +122,47 @@ class CAV:
   def compute_future_path(self):
     """ Computing Future Path (made of granulae, which include CAV's current position) """
     
-    self.fpStartTs = self.timestamp # used in computing TOA in CZ
+    # self.find_shortest_path() # self.SP gets updated
+    # no need to recompute `self.SP`. Simply make `SP` = `self.SP`[`self.lookAhead` ...]
+    SP = self.SP[ self.SP.index(self.lookAhead) : ] # takes poisson(config.poi_avg["sp_time"]) time
+    self.timestamp += poisson(config.poi_avg["compute_future_path_1"])
+
+    self.fpStartTs = self.timestamp # TS as which FP start position is recorded. used in computing TOA in CZ
+    dt = self.timestamp - self.lastMcTs # us
+    curr_x = (100 * self.x) + (self.v * np.cos(self.phi) * dt / (10**4)) # cm
+    curr_y = (100 * self.y) + (self.v * np.sin(self.phi) * dt / (10**4)) # cm
     
-    self.find_shortest_path() # self.SP gets updated
-    
-    # must add self position if not close enough to self.SP[0]
-    mustAddSelf = dist({ "x" : (self.x * 100), "y" : (self.y * 100) }, config.WPs[self.lookAhead]) >= config.FP_INCLUSION_THRESHOLD
+    # must add self position if not close enough to SP[0] (aka self.lookAhead)
+    mustAddSelf = dist({ "x" : curr_x, "y" : curr_y }, config.WPs[SP[0]]) >= config.FP_INCLUSION_THRESHOLD
     d_max = self.v_max * ((config.rho/1000) + (self.v_max/np.abs(self.a_brake)))
-    l_sp = len(self.SP)
+    l_sp = len(SP)
 
     fp, total_dist = [], 0.0 # future points, total distance (cm) covered by these future points
 
     for i in range(0 if mustAddSelf else 1 , l_sp):
       rem = (100.0 * d_max) - total_dist # remaining distance (cm)
-      e_start = config.WPs[self.SP[i-1]] if (i > 0) else { "x" : (self.x * 100), "y" : (self.y * 100) } # starting waypoint of edge
-      e_end = config.WPs[self.SP[i]] # ending waypoint of edge
+      e_start = config.WPs[SP[i-1]] if (i > 0) else { "x" : curr_x, "y" : curr_y } # starting waypoint of edge
+      e_end = config.WPs[SP[i]] # ending waypoint of edge
       d = dist(e_start, e_end) # edge length (cm)
       num_fp = np.ceil(np.min([rem, d]) / (config.b * 100))
       for j in range(int(num_fp)):
         fp.append({
           "x" : ( (d-100*j*config.b)*e_start["x"] + 100*j*config.b*e_end["x"] ) / d,
           "y" : ( (d-100*j*config.b)*e_start["y"] + 100*j*config.b*e_end["y"] ) / d,
-          "e_start" : self.SP[i-1] if (i > 0) else None, "e_end" : self.SP[i] # indicates the edge these granulae come from
+          "e_start" : SP[i-1] if (i > 0) else None, "e_end" : SP[i] # indicates the edge these granulae come from
         })
-      if (rem <= d):
-        break
+      if (rem <= d): break
       if i == (l_sp-1):
         fp.append({
           "x" : e_end["x"], "y" : e_end["y"],
-          "e_start" : self.SP[i-1] if (i > 0) else None, "e_end" : self.SP[i] # indicates the edge these granulae come from
+          "e_start" : SP[i-1] if (i > 0) else None, "e_end" : SP[i] # indicates the edge these granulae come from
         })
         break
       total_dist += d
 
     self.FP = fp # FP consists of granulae (xy coordinates)
-    self.timestamp += poisson(config.poi_avg["compute_future_path"])
-    self.logFile.write(f"\nSHORTEST PATH\n{self.SP}\n")
+    self.timestamp += poisson(config.poi_avg["compute_future_path_2"])
+    self.logFile.write(f"\nAPPARENT SHORTEST PATH\n{SP}\n")
     self.logFile.write(f"\nFUTURE PATH\n{objStr(self.FP)}\n")
 
   def find_conflict_zones_all_CAVs(self):
@@ -165,6 +182,7 @@ class CAV:
     for other_cav_id in self.Others_Info:
       self.find_conflict_zones(other_cav_id)
 
+    self.timestamp += poisson(config.poi_avg["find_conflict_zones"]) # placed here because we require deterministic timing
     self.logFile.write(f"\nCONFLICT ZONES\n{objStr(self.CZ)}\n")
     self.logFile.write(f"\nPDG\n{self.PDG}\n")
   
@@ -234,10 +252,9 @@ class CAV:
       v2 = [p, p+1] if special else v2[1:]
 
       # Times of Arrival (microseconds)
-      toa1 = (self.fpStartTs + (10000*d1_begin/self.v)) if (self.v != 0) else float('inf')
-      toa2 = (other["fpStartTs"] + (10000*d2_begin/v_other)) if (v_other != 0) else float('inf')
-      diff = 0 if ((toa2 == float('inf')) and (toa1 == float('inf'))) else (toa2-toa1)
-      adv = None
+      toa1 = (self.fpStartTs + (10000*d1_begin/(self.v if (self.v != 0) else self.v_max)))
+      toa2 = (other["fpStartTs"] + (10000*d2_begin/(v_other if (v_other != 0) else (other["v_max"]))))
+      diff, adv = (toa2-toa1), None
       if np.abs(diff) <= config.CLOCK_ACCURACY:
         adv = self.ID if (self.ID < other_cav_id) else other_cav_id
       else:
@@ -256,8 +273,6 @@ class CAV:
       if C[0]["advantage"] == self.ID: rowIndex, colIndex = colIndex, rowIndex # other_cav_id yields to self.ID
       self.PDG[rowIndex][colIndex] = 1
 
-    self.timestamp += poisson(config.poi_avg["find_conflict_zones"])
-
   def construct_CDG(self):
     """ Construct CDG from `self.PDG` and `self.Others_PDG` and store it in `self.CDG` """
     l_carIndices = len(self.carIndices)
@@ -268,6 +283,12 @@ class CAV:
     
     self.timestamp += poisson(config.poi_avg["construct_CDG"])
     self.logFile.write(f"\n{self.CDG}\n")
+
+  def deadlock_resolution(self):
+    """ Detect any deadlocks found in `self.CDG` and resolve them usign DFS. Will complete this later. """
+    # TODO: Complete this later.
+    self.timestamp += poisson(config.poi_avg["deadlock_resolution"])
+    self.logFile.write(f"\nUseless Deadlock Resolution.\n")
 
   def motion_planner(self):
     """ Very basic motion planning: simpl computing safe velocities """
@@ -289,13 +310,12 @@ class CAV:
         if tmp_d_c < 0: break
         d_c.append(tmp_d_c)
       
-      self.logFile.write(f"\noher_cav_id = {other_cav_id}\nd_c = {d_c}\n")
+      # self.logFile.write(f"\nother_cav_id = {other_cav_id}\nd_c = {d_c}\n")
       
       l_d_c = len(d_c)
       rho = config.rho / 1000.0 # s
       b = np.abs(self.a_brake) # m/s2
       for i in range(l_d_c):
-        self.logFile.write(f"{i}: {((( ((b*rho)**2) + (2*b*d_c[i]/100) )**0.5) - (b * rho))}\n")
         self.v_safe[i] = min(self.v_safe[i], self.v_max, ((( ((b*rho)**2) + (2*b*d_c[i]/100) )**0.5) - (b * rho)))
 
     self.timestamp += poisson(config.poi_avg["motion_planner"])
@@ -322,11 +342,18 @@ class CAV:
     elif cfp_i == (l_FP - 1) : self.v = self.v_safe[-1]
     else: self.v = 0.5 * ( self.v_safe[cfp_i-1] + self.v_safe[cfp_i] )
 
-    self.lookAhead = self.FP[cfp_i]["e_end"] # always defined (not None)
+    self.lookAhead = self.FP[cfp_i]["e_end"] # always defined (not None) and a part of self.SP
     self.phi = np.arctan2(
-      (config.WPs[self.lookAhead]["y"] * 100) - self.y, # cm
-      (config.WPs[self.lookAhead]["x"] * 100) - self.x  # cm
+      config.WPs[self.lookAhead]["y"] - (self.y * 100), # cm
+      config.WPs[self.lookAhead]["x"] - (self.x * 100)  # cm
     )
+
+    self.logFile.write(f"\nTS = lastMcTs = {self.timestamp} us\n")
+    self.logFile.write(f"\nx = {self.x} m, y = {self.y} m\n")
+    self.logFile.write(f"\nv = {self.v} m/s, phi = {self.phi} radians\n")
+    tmp = config.WPs[self.lookAhead]
+    self.logFile.write(f"\nlookAhead = {self.lookAhead} : ({tmp['x']/100} m, {tmp['y']/100} m)\n")
+    self.trajFile.write(f"{self.timestamp/1000},{self.x*100},{self.y*100},{self.phi*180/np.pi},{self.v},{self.lookAhead},{tmp['x']},{tmp['y']}\n")
 
   ######## BROADCASTING STUFF ########
   ####################################
@@ -334,7 +361,7 @@ class CAV:
   def broadcast_info(self):
     config.S.broadcast({
       "ID" : self.ID, "timestamp" : self.timestamp, # this TS is broadcast start time
-      "v" : self.v,
+      "v" : self.v, "v_max" : self.v_max,
       "FP" : self.FP, "fpStartTs" : self.fpStartTs # this TS is fpStart start time
     })
 
@@ -358,34 +385,29 @@ class CAV:
       self.Others_PDG[ID] = others_PDG[ID]["PDG"]
     self.logFile.write(f"\nOthers_PDG\n{self.Others_PDG}\n")
 
-  def execute(self): pass
-    # while True:
-    #   self.logFile.write(f"\nITERATION {self.iter}:\n")
-    #   if self.iter == (self.maxIter - 1): # like reaching destination
-    #     config.S.dontCare()
-    #     self.logFile.write(f"TS-{self.timestamp}: Reached Destination.\n")
-    #     self.logFile.write(f"Iterations Executed: {self.iter + 1} / {self.maxIter}\n")
-    #     exit(0)      
+  def execute(self):
+    iter = 0
 
-    #   self.timestamp += poisson(10000) # 10 ms
+    while True: # main loop
+    
+      self.logFile.write(f"\n######## ITERATION {iter}: ########\n")
 
-    #   bcInfo = { "ID" : self.ID, "timestamp" : self.timestamp, "other": randStr() }
-    #   self.logFile.write(f"TS-{self.timestamp}: Sending info = {bcInfo}\n")
-    #   S.broadcast(bcInfo)
+      if self.hasReachedDest():
+        config.S.dontCare()
+        self.logFile.write(f"TS-{self.timestamp}: Reached Destination.\n")
+        self.logFile.write(f"Iterations Executed: {iter + 1}\n")
+        exit(0)      
 
-    #   otherInfo, self.timestamp = S.receive()
-    #   self.logFile.write(f"TS-{self.timestamp}: Receiving info = {otherInfo}\n")
+      self.compute_future_path()
+      self.broadcast_info()
+      self.receive_others_info()
+      self.find_conflict_zones_all_CAVs()
+      self.broadcast_PDG()
+      self.receive_others_PDGs()
+      self.construct_CDG()
+      self.deadlock_resolution()
+      self.motion_planner()
+      self.motion_controller()
 
-    #   self.timestamp += poisson(10000) # 10 ms
-
-    #   bcInfo = { "ID" : self.ID, "timestamp" : self.timestamp, "other": randStr() }
-    #   self.logFile.write(f"TS-{self.timestamp}: Sending info = {bcInfo}\n")
-    #   S.broadcast(bcInfo)
-
-    #   otherInfo, self.timestamp = S.receive()
-    #   self.logFile.write(f"TS-{self.timestamp}: Receiving info = {otherInfo}\n")
-
-    #   self.timestamp += poisson(10000) # 10 ms
-
-    #   self.iter += 1
+      iter += 1
 

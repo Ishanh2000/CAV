@@ -93,11 +93,11 @@ def test_cav_upto_motion_controller():
   CAVs, l_cars = [], len(config.cars)
   for car in config.cars:
     cav = CAV(car)
-    cav.a_brake, cav.v_max = -5, 100
-    cav.compute_future_path()
+    cav.a_brake, cav.v_max = -5, 10
     CAVs.append(cav)
   
   for i in range(l_cars):
+    CAVs[i].compute_future_path()
     CAVs[i].broadcast_info()
   
   for i in range(l_cars):
@@ -110,23 +110,77 @@ def test_cav_upto_motion_controller():
   for i in range(l_cars):
     CAVs[i].receive_others_PDGs()
     CAVs[i].construct_CDG()
+    CAVs[i].deadlock_resolution()
     CAVs[i].motion_planner()
-    print(f"ID = {CAVs[i].ID}")
-    print(f"v_safe =", CAVs[i].v_safe)
-    print()
+    CAVs[i].motion_controller()
   
-  print()
+  print("TEST COMPLETE SEE LOG FILES.\n")
+
+
+def test_cav_full_cycle():
+  print("######## TEST CAV FULL CYCLE #########")
+  print("######################################\n")
+
+  CAVs, l_cars = [], len(config.cars)
+  for car in config.cars:
+    cav = CAV(car)
+    cav.a_brake, cav.v_max = -5, 10
+    CAVs.append(cav)
+
+  for j in range(15):
+    for i in range(l_cars):
+      CAVs[i].compute_future_path()
+      CAVs[i].broadcast_info()
+    
+    for i in range(l_cars):
+      CAVs[i].receive_others_info()
+      CAVs[i].find_conflict_zones_all_CAVs()
+
+    for i in range(l_cars):
+      CAVs[i].broadcast_PDG()
+
+    for i in range(l_cars):
+      CAVs[i].receive_others_PDGs()
+      CAVs[i].construct_CDG()
+      CAVs[i].deadlock_resolution()
+      CAVs[i].motion_planner()
+      CAVs[i].motion_controller()
+  
+  print("TEST COMPLETE SEE LOG FILES.\n")
+
+
+def test_cav_execute():
+  print("######## TEST CAV EXECUTE #########")
+  print("######################################\n")
+
+  CAVs, l_cars = [], len(config.cars)  
+  for car in config.cars: # Initiialize
+    cav = CAV(car)
+    cav.a_brake, cav.v_max = -5, 5
+    CAVs.append(cav)
+  
+  for i in range(l_cars): # Start
+    CAVs[i].thread.start()
+
+  for i in range(l_cars): # Wait for End
+    CAVs[i].thread.join()
+  
+  print("TEST COMPLETE SEE LOG FILES.\n")
+
+
 
 if __name__ == "__main__":
   
-  config.importParentGraph(os.path.join(os.getcwd(), "samples/hex2.json"))
+  config.importParentGraph(os.path.join(os.getcwd(), "samples/curve_1.json"))
   config.startServer() # config.S is now the functioning server
 
   # test_cav_init()
   # test_cav_sp_and_fp()
   # test_cav_find_conflict_zones()
   # test_cav_upto_construct_CDG()
-  test_cav_upto_motion_controller()
+  # test_cav_upto_motion_controller()
+  # test_cav_full_cycle()
+  test_cav_execute()
 
 
 

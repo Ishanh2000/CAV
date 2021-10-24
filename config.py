@@ -7,20 +7,22 @@ from server2 import Server2 as Server
 
 b = 0.5 # granularity, metres (required for computing FP)
 CLOCK_ACCURACY = 50 # microseconds (required for CZ detection)
-T = 50 # milliseconds (periodic broadcast time period)
-rho = 100 # milliseconds (worst end to end delay)
+T = 100 # milliseconds (periodic broadcast time period)
+rho = 200 # milliseconds (worst end to end delay)
 d_th = 0.63 # metres
 S : Server = None # will initialize later
+DEST_REACH_THRESHOLD = 0.5 # m
 
 # Average computing times (Poisson distribution) in microseconds (us)
 poi_avg = {
-  "boot_time" : 1000, # 1 ms
-  "compute_future_path" : 1000, # 1 ms
-  "find_conflict_zones" : 1000, # 1 ms
-  "construct_CDG" : 1000, # 1 ms
-  "motion_planner" : 1000, # 1 ms
-  "motion_controller" : 1000, # 1 ms
-  "server" : 1000, # 1 ms
+  "boot_time" : 10000,
+  "compute_future_path_1" : 2000,
+  "compute_future_path_2" : 6000,
+  "find_conflict_zones" : 15000,
+  "construct_CDG" : 5000,
+  "deadlock_resolution" : 10000,
+  "motion_planner" : 5000,
+  "motion_controller" : 5000,
 }
 
 # modifications by Utkarsh Gupta

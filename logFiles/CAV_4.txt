@@ -1,13 +1,14 @@
-ID = 4, Boot Time = 1012
-CAV : ID = 4, Timestamp = 1.012 ms
+ID = 4, Boot Time = 10019
+CAV : ID = 4, Timestamp = 10.019 ms
 Look Ahead WP = 1 (4.55 m, 1.37 m), Destination WP = 2 (8.35 m, 1.38 m)
 fpStartTs = None
-lastMcTs = 1012
+lastMcTs = 10019
 Position = (4.36 m, 1.32 m), Angle (phi) = 0 rad
 v = 0 m/s, v_max = None m/s, a_brake = None m/s2
+Shortest Path = [1, 2]
 
 
-SHORTEST PATH
+APPARENT SHORTEST PATH
 [1, 2]
 
 FUTURE PATH
@@ -78,8 +79,9 @@ Others_Info
 {
   "0": {
     "ID": 0,
-    "timestamp": 1988,
+    "timestamp": 17973,
     "v": 0,
+    "v_max": 10,
     "FP": [
       {
         "x": 198.00003051757812,
@@ -232,12 +234,13 @@ Others_Info
         "e_end": 5
       }
     ],
-    "fpStartTs": 1009
+    "fpStartTs": 11918
   },
   "2": {
     "ID": 2,
-    "timestamp": 2036,
+    "timestamp": 18094,
     "v": 0,
+    "v_max": 10,
     "FP": [
       {
         "x": 615.0000610351562,
@@ -456,7 +459,7 @@ Others_Info
         "e_end": 0
       }
     ],
-    "fpStartTs": 1038
+    "fpStartTs": 12038
   }
 }
 
@@ -467,7 +470,7 @@ CONFLICT ZONES
       "self": {
         "begin": 0.09823472806596734,
         "end": 3.846476340242638,
-        "toa": Infinity,
+        "toa": 21884.472806596732,
         "cz": [
           1,
           2,
@@ -482,7 +485,7 @@ CONFLICT ZONES
       "other": {
         "begin": 3.7973776778220927,
         "end": 8.153729672898292,
-        "toa": Infinity,
+        "toa": 391655.7677822093,
         "cz": [
           9,
           10,
@@ -496,7 +499,7 @@ CONFLICT ZONES
           18
         ]
       },
-      "advantage": 0
+      "advantage": 4
     }
   ],
   "2": [
@@ -504,7 +507,7 @@ CONFLICT ZONES
       "self": {
         "begin": 3.446469456131935,
         "end": 3.846476340242638,
-        "toa": Infinity,
+        "toa": 356707.9456131935,
         "cz": [
           8
         ]
@@ -512,49 +515,42 @@ CONFLICT ZONES
       "other": {
         "begin": 6.2232933781753585,
         "end": 6.792575854658036,
-        "toa": Infinity,
+        "toa": 634367.3378175359,
         "cz": [
           13,
           14
         ]
       },
-      "advantage": 2
+      "advantage": 4
     }
   ]
 }
 
 PDG
-[[0. 0. 0.]
- [0. 0. 0.]
- [1. 1. 0.]]
+[[0. 0. 1.]
+ [0. 0. 1.]
+ [0. 0. 0.]]
 
 Others_PDG
-{0: array([[0., 0., 0.],
+{0: array([[0., 0., 1.],
        [1., 0., 0.],
-       [1., 0., 0.]]), 2: array([[0., 0., 0.],
-       [1., 0., 0.],
-       [0., 1., 0.]])}
+       [0., 0., 0.]]), 2: array([[0., 1., 0.],
+       [0., 0., 1.],
+       [0., 0., 0.]])}
 
-[[False False False]
- [ True False False]
- [ True  True False]]
-
-oher_cav_id = 0
-d_c = [0.0]
-0: 0.0
-
-oher_cav_id = 2
-d_c = [334.8234728065968, 300.00000000000006, 250.00000000000009, 200.00000000000006, 150.00000000000003, 100.00000000000006, 50.000000000000085, 5.684341886080802e-14]
-0: 5.307955516415366
-1: 5.0
-2: 4.524937810560446
-3: 4.0
-4: 3.4051248379533274
-5: 2.701562118716425
-6: 1.7912878474779221
-7: 5.662137425588298e-15
+[[False  True  True]
+ [ True False  True]
+ [False False False]]
 
 v_safe
-[0.0, 5.0, 4.524937810560446, 4.0, 3.4051248379533274, 2.701562118716425, 1.7912878474779221, 5.662137425588298e-15, 100]
+[10, 10, 10, 10, 10, 10, 10, 10, 10]
+
+TS = lastMcTs = 98418 us
+
+x = 4.36 m, y = 1.32 m
+
+v = 10 m/s, phi = 0.16378193291263618 radians
+
+lookAhead = 2 : (835.0001220703125 m, 138.00001525878906 m)
 
 Exiting...

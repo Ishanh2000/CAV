@@ -2,7 +2,8 @@
 from numpy.random import poisson
 from copy import deepcopy
 from threading import Lock
-import config
+
+poi_avg_server = 25000 # Average computing times (Poisson distribution) in microseconds (us)
 
 class Server2:
   def __init__(self, carNum = 0):
@@ -28,7 +29,7 @@ class Server2:
 
   def receive(self):
     while self.mode != "rx" : pass
-    offset = poisson(config.poi_avg["server"])
+    offset = poisson(poi_avg_server)
     retVal = (deepcopy(self.infoBucket), self.maxLocalTs + offset)
     self.lock.acquire()
     self.rxRemain -= 1
