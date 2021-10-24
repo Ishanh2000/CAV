@@ -288,7 +288,7 @@ class CAV:
       self.CDG = np.logical_or(self.CDG, self.Others_PDG[PDG])
     
     self.timestamp += poisson(config.poi_avg["construct_CDG"])
-    self.logFile.write(f"\n{self.CDG}\n")
+    self.logFile.write(f"\nCDG\n{self.CDG}\n")
 
   def deadlock_resolution(self):
     """ Detect any deadlocks found in `self.CDG` and resolve them usign DFS. Will complete this later. """
@@ -341,8 +341,9 @@ class CAV:
     for i in range(l_FP):
       tmp_d = dist({ "x" : (100*self.x), "y" : (100*self.y) }, self.FP[i])
       if tmp_d < d:
-        tmp_d = d
+        d = tmp_d
         cfp_i = i
+    self.logFile.write(f"\nclosest_fp = {cfp_i} : {self.FP[cfp_i]}\n")
     
     if cfp_i == 0 : self.v = self.v_safe[0]
     elif cfp_i == (l_FP - 1) : self.v = self.v_safe[-1]
@@ -379,7 +380,7 @@ class CAV:
     others_Info, self.timestamp = config.S.receive()
     del others_Info[self.ID]
     self.Others_Info = others_Info
-    self.logFile.write(f"\nOthers_Info\n{objStr(self.Others_Info)}\n")
+    # self.logFile.write(f"\nOthers_Info\n{objStr(self.Others_Info)}\n")
 
   def broadcast_PDG(self):
     config.S.broadcast({
@@ -393,13 +394,15 @@ class CAV:
     self.Others_PDG = {}
     for ID in others_PDG:
       self.Others_PDG[ID] = others_PDG[ID]["PDG"]
-    self.logFile.write(f"\nOthers_PDG\n{self.Others_PDG}\n")
+    # self.logFile.write(f"\nOthers_PDG\n{self.Others_PDG}\n")
 
   def execute(self):
 
     while True: # main loop
     
+      self.logFile.write(f"\n########################################\n")
       self.logFile.write(f"\n######## ITERATION {self.iter}: ########\n")
+      self.logFile.write(f"\n########################################\n")
 
       if self.hasReachedDest():
         config.S.dontCare()

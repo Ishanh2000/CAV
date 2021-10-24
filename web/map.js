@@ -663,7 +663,142 @@ class Tracer {
 			this.trace.push({ ...entry, id });
 		});
 		this.trace.sort((a, b) => (a.ts - b.ts));
-		this.next = 0;
+		this.nextIdx = 0;
+	}
+
+	next() {
+		if (this.trace.length < 1) { console.log("NOTHING TO TRACE!!!"); return; }
+		if (this.nextIdx == this.trace.length) {
+			if (mode !== "rewind") { console.log("END OF TRACE!!!"); return; }
+			else this.nextIdx = 0;
+		}
+
+		const tmpCar = this.trace[this.nextIdx]; // ts, id, x, y, phi, v
+
+		// find car with id = tmpCar.id
+		const _idx = cars.findIndex(c => (c.id === tmpCar.id));
+		if (_idx === -1) {
+			this.nextIdx++;
+			return; // can do nothing
+		}
+		
+		const { ix, iy } = getSectorIndex(cars[_idx]);
+		carsSectors[ix][iy] = carsSectors[ix][iy].filter(x => (x !== _idx)); // removed _idx from carsSectors
+		
+		const newIxIy = getSectorIndex(tmpCar);
+		carsSectors[newIxIy.ix][newIxIy.iy].push(_idx);
+
+		cars[_idx].ts = tmpCar.ts;
+		cars[_idx].x = tmpCar.x; cars[_idx].y = tmpCar.y;
+		cars[_idx].angle = ((tmpCar.phi * Math.PI) / 180.00);
+		cars[_idx].speed = tmpCar.v;
+		
+		const prevShowCars = showCars;
+		showCars = false; // for spoofing since we shall later manually draw the cars
+		clearCanvas();
+		draw();
+		if (prevShowCars) {
+			showCars = true;
+			// now draw all cars except the one with id = tmpCar.id
+			cars.forEach((car) => {
+				if (car.id !== tmpCar.id) drawCar(car);
+			});
+			drawCar(cars[_idx]); // the last one for overlap
+		}
+
+		this.nextIdx++;
+	}
+
+	rewind() {
+		this.nextIdx = 0;
+	}
+}
+
+const delay = ms => new Promise(res => setTimeout(res, ms)); // personalized delay function
+
+class Player {
+	data = {} // where car data is stored
+	frames = [] // array[ { id : { ts, x, y, phi, v } } ]
+	numFrames = -1;
+	frameSize = 20.0;
+	playRate = 0.5;
+	
+	setData (id, trajData) { // carId, array[ { ts, x, y, phi, v } ]
+		this.data[id] = trajData;
+	}
+
+	interpolate() {
+		let tsMax = -1;
+		for (let id in this.data) {
+			const tmp = Math.max(...(this.data[id].map(entry => entry.ts)));
+			if (tmp > tsMax) tsMax = tmp;
+		}
+		this.numFrames = Math.ceil(tsMax / this.frameSize) + 1;
+		if (this.numFrames < 1) {
+			console.log("Error in computing number of time frames.");
+			return; // can do nothing
+		}
+
+		this.frames = [];
+		for (let i = 0; i < this.numFrames; i++) {
+			let obj = {};
+			for (let id in this.data) obj[id] = { x : 0, y : 0, phi : 0, v : 0 };
+			this.frames.push(obj);
+		}
+
+		for (let id in this.data) {
+			const arr = this.data[id];
+			const l_arr = arr.length;
+			if (l_arr > 0) {
+				// for starting few frames, when first data entry has not yet arrived
+				const fEnd = (Math.ceil(arr[0].ts / this.frameSize) - 1), fStart = Math.ceil(arr[l_arr-1].ts / this.frameSize);
+				for (let j = 0; j <= fEnd; j++) {
+					this.frames[j][id].x = arr[0].x; this.frames[j][id].y = arr[0].y;
+				}
+				// for ending few frames, when last data entry has already finished
+				for (let j = fStart; j < this.numFrames; j++) {
+					this.frames[j][id].x = arr[l_arr-1].x; this.frames[j][id].y = arr[l_arr-1].y;
+				}
+			}
+			for (let i = 0; i < l_arr-1; i++) {
+				const fStart = Math.ceil(arr[i].ts / this.frameSize);
+				const fEnd = Math.ceil(arr[i+1].ts / this.frameSize) - 1;
+				for (let j = fStart; j <= fEnd; j++) {
+					const { ts, x, y, phi, v } = arr[i];
+					this.frames[j][id].phi = phi; this.frames[j][id].v = v;
+					const dt = (this.frameSize * j) - ts; // milliseconds
+					this.frames[j][id].x = x + (v * dt * 0.1 * Math.cos(phi * Math.PI / 180.0));
+					this.frames[j][id].y = y + (v * dt * 0.1 * Math.sin(phi * Math.PI / 180.0));
+				}
+			}
+		}
+	}
+
+	async play() {
+		const l_frames = this.frames.length;
+		for (let i = 0; i < l_frames; i++) {
+			for (let id in this.frames[i]) {
+				const tmpCar = this.frames[i][id]; // { x, y, phi, v }
+				// first find this car with carId = id
+				const _idx = cars.findIndex(c => (c.id === parseInt(id)));
+				if (_idx === -1) continue; // can do nothing
+
+				const { ix, iy } = getSectorIndex(cars[_idx]);
+				carsSectors[ix][iy] = carsSectors[ix][iy].filter(x => (x !== _idx)); // removed _idx from carsSectors
+				
+				const newIxIy = getSectorIndex(tmpCar);
+				carsSectors[newIxIy.ix][newIxIy.iy].push(_idx);
+
+				cars[_idx].ts = (this.frameSize * i);
+				cars[_idx].x = tmpCar.x; cars[_idx].y = tmpCar.y;
+				cars[_idx].angle = ((tmpCar.phi * Math.PI) / 180.00);
+				cars[_idx].speed = tmpCar.v;
+			}
+
+			clearCanvas();
+			draw();
+			await delay(this.frameSize / this.playRate);
+		}
 	}
 
 	next() {
@@ -690,9 +825,25 @@ class Tracer {
 		cars[_idx].angle = ((tmpCar.phi * Math.PI) / 180.00);
 		cars[_idx].speed = tmpCar.v;
 		
+		const prevShowCars = showCars;
+		showCars = false; // for spoofing since we shall later manually draw the cars
 		clearCanvas();
 		draw();
+		if (prevShowCars) {
+			showCars = true;
+			// now draw all cars except the one with id = tmpCar.id
+			cars.forEach((car) => {
+				if (car.id !== tmpCar.id) drawCar(car);
+			});
+			drawCar(cars[_idx]); // the last one for overlap
+		}
 
 		this.nextIdx++;
 	}
+
+	rewind() {
+		this.nextIdx = 0;
+	}
 }
+
+

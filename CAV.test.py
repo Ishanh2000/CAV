@@ -156,7 +156,7 @@ def test_cav_execute():
   CAVs, l_cars = [], len(config.cars)  
   for car in config.cars: # Initiialize
     cav = CAV(car)
-    cav.a_brake, cav.v_max = -5, 5
+    cav.a_brake, cav.v_max = -10, 10
     CAVs.append(cav)
   
   for i in range(l_cars): # Start
@@ -171,7 +171,7 @@ def test_cav_execute():
 
 if __name__ == "__main__":
   
-  config.importParentGraph(os.path.join(os.getcwd(), "samples/curve_1.json"))
+  config.importParentGraph(os.path.join(os.getcwd(), "samples/straight_2.json"))
   config.startServer() # config.S is now the functioning server
 
   # test_cav_init()
