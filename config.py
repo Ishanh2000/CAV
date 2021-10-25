@@ -11,7 +11,7 @@ T = 100 # milliseconds (periodic broadcast time period)
 rho = 200 # milliseconds (worst end to end delay)
 d_th = 0.63 # metres
 S : Server = None # will initialize later
-DEST_REACH_THRESHOLD = 0.5 # m
+DEST_REACH_THRESHOLD = 0.7 # m
 
 # Average computing times (Poisson distribution) in microseconds (us)
 poi_avg = {

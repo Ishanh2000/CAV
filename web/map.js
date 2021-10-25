@@ -777,6 +777,7 @@ class Player {
 	async play() {
 		const l_frames = this.frames.length;
 		for (let i = 0; i < l_frames; i++) {
+			// if (i > 200) return;
 			for (let id in this.frames[i]) {
 				const tmpCar = this.frames[i][id]; // { x, y, phi, v }
 				// first find this car with carId = id
