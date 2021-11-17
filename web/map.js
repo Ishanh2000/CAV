@@ -647,6 +647,12 @@ window.onbeforeunload = function() { // not satisfactory
 	return "Are you sure you wish to leave? Graph cannot be retrieved. Type \"YES\" to leave (won't leave if you type otherwise):";
 }
 
+window.onresize = function() {
+	clearCanvas();
+	canvas.width = window.innerWidth * 0.85; canvas.height = window.innerHeight * 0.85;
+	draw();
+}
+
 /**********************************************/
 /********** BEGIN ACTUAL CODING HERE **********/
 /**********************************************/

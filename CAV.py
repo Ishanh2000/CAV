@@ -421,5 +421,13 @@ class CAV:
       self.motion_planner()
       self.motion_controller()
 
+      # ############################################################################################
+      # ######## near the point (7.03 m, 5.03 m) let the slow vehicle increase its velocity ########
+      # ############################################################################################
+
+      # if self.ID == 2:
+      #   if dist({ "x" : self.x, "y" : self.y }, { "x" : 7.03, "y" : 5.03 }) <= 0.7:
+      #     self.v_max = 8
+
       self.iter += 1
 
