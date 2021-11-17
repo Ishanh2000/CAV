@@ -5,6 +5,8 @@
 import json
 from server2 import Server2 as Server
 
+WPs, NBs, cars, sectors, carsSectors = None, None, None, None, None
+
 b = 0.5 # granularity, metres (required for computing FP)
 CLOCK_ACCURACY = 50 # microseconds (required for CZ detection)
 T = 100 # milliseconds (periodic broadcast time period)

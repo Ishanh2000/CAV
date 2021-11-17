@@ -64,11 +64,16 @@ class CAV:
   
   def __del__(self):
     """ Destructor """
-    self.logFile.write("\nExiting...\n")
-    self.logFile.close()
-    self.trajFile.close()
-    self.trajFileJson.write("\n]")
-    self.trajFileJson.close()
+    if not self.logFile.closed:
+      self.logFile.write("\nExiting...\n")
+      self.logFile.close()
+
+    if not self.trajFile.closed:
+      self.trajFile.close()
+    
+    if not self.trajFileJson.closed:
+      self.trajFileJson.write("\n]")
+      self.trajFileJson.close()
 
   def __str__(self):
     """ Stringification """

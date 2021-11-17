@@ -41,6 +41,7 @@ var speed = 10.0, acc = 0.0; // m/s, m/s2
 var angle = 0.00;
 var carColor = "#F00";
 var showCars = true;
+var isSimAndPlay = false;
 
 // GRAPH
 var WPs = []; // nodes / waypoints
@@ -543,183 +544,6 @@ async function importJson() {
 }
 
 
-/**** Don't remove this function does as it keeps track of transforms in he form of a matrix. ****/
-function trackTransforms() {
-
-	// Adds ctx.getTransform() - returns an SVGMatrix
-	// Adds ctx.transformedPoint(x,y) - returns an SVGPoint
-	var svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
-	var xform = svg.createSVGMatrix();
-	ctx.getTransform = function() { return xform; };
-	
-	var savedTransforms = [];
-	var save = ctx.save;
-	ctx.save = function() {
-		savedTransforms.push(xform.translate(0, 0));
-		return save.call(ctx);
-	};
-
-	var restore = ctx.restore;
-	ctx.restore = function() {
-		xform = savedTransforms.pop();
-		return restore.call(ctx);
-	};
-
-	var scale = ctx.scale;
-	ctx.scale = function(sx, sy) {
-		xform = xform.scaleNonUniform(sx, sy);
-		return scale.call(ctx, sx, sy);
-	};
-
-	var rotate = ctx.rotate;
-	ctx.rotate = function(radians) {
-		xform = xform.rotate(radians * 180 / Math.PI);
-		return rotate.call(ctx, radians);
-	};
-
-	var translate = ctx.translate;
-	ctx.translate = function(dx, dy) {
-		xform = xform.translate(dx, dy);
-		return translate.call(ctx, dx, dy);
-	};
-
-	var transform = ctx.transform;
-	ctx.transform = function(a, b, c, d, e, f) {
-		var m2 = svg.createSVGMatrix();
-		m2.a = a; m2.b = b; m2.c = c; m2.d = d; m2.e = e; m2.f = f;
-		xform = xform.multiply(m2);
-		return transform.call(ctx, a, b, c, d, e, f);
-	};
-	
-	var setTransform = ctx.setTransform;
-	ctx.setTransform = function(a, b, c, d, e, f) {
-		xform.a = a; xform.b = b;	xform.c = c; xform.d = d; xform.e = e; xform.f = f;
-		return setTransform.call(ctx, a, b, c, d, e, f);
-	};
-
-	var pt = svg.createSVGPoint();
-	ctx.transformedPoint = function(x, y) {
-		pt.x = x; pt.y = y;
-		return pt.matrixTransform(xform.inverse());
-	}
-}
-
-trackTransforms();
-
-// WINDOW ONLOAD (EVENT LISTENER BINDINGS IN THIS FUNCTION)
-window.onload = function () {
-	document.getElementById("nav").checked = true; // default checking of "Navigation" mode
-	document.getElementById("speed").value = 10.00; // default speed
-	document.getElementById("acc").value = 0.00; // default acceleration
-	document.getElementById("angle").value = 0.00; // default angle
-	document.getElementById("carColor").value = "#F00"; // default car color (red)
-	document.getElementById("showCars").checked = true; // defualt "Show Cars"
-	document.getElementById("homeBtn").addEventListener('click', homeTransform, false);
-	document.getElementById("clearBtn").addEventListener('click', clearGraph, false);
-	document.getElementById("importJsonBtn").addEventListener('click', importJson, false);
-	document.getElementById("downloadPngBtn").addEventListener('click', downloadPng, false);
-	document.getElementById("downloadJsonBtn").addEventListener('click', downloadJson, false);
-	document.getElementById("speed").addEventListener('change', (evt) => { speed = parseFloat(evt.target.value.trim()); }, false);
-	document.getElementById("acc").addEventListener('change', (evt) => { acc = parseFloat(evt.target.value.trim()); }, false);
-	document.getElementById("angle").addEventListener('change', (evt) => { angle = parseFloat(evt.target.value.trim()); }, false);
-	document.getElementById("carColor").addEventListener('change', (evt) => { carColor = evt.target.value.trim(); }, false);
-	document.getElementById("showCars").addEventListener('change', () => {
-		showCars = document.getElementById("showCars").checked;
-		clearCanvas();
-		draw();
-	}, false);
-	document.getElementById("darkMode").addEventListener('change', () => {
-		useDarkMode = document.getElementById("darkMode").checked;
-		const modeName = useDarkMode ? "dark" : "light";
-		document.body.style.backgroundColor = docBgClr[modeName];
-		document.body.style.color = docTxtClr[modeName];
-		canvas.style.backgroundColor = canvasBgClr[modeName];
-	}, false);
-	document.getElementById("darkMode").checked = false;
-	document.getElementById("darkMode").click();
-	// radio mode changer
-	document.querySelectorAll('input[type=radio][name="mode"]').forEach(radio => {
-		radio.addEventListener('change', () => { mode = radio.value; });
-	});
-}
-
-window.onbeforeunload = function() { // not satisfactory
-	return "Are you sure you wish to leave? Graph cannot be retrieved. Type \"YES\" to leave (won't leave if you type otherwise):";
-}
-
-window.onresize = function() {
-	clearCanvas();
-	canvas.width = window.innerWidth * 0.85; canvas.height = window.innerHeight * 0.85;
-	draw();
-}
-
-/**********************************************/
-/********** BEGIN ACTUAL CODING HERE **********/
-/**********************************************/
-
-class Tracer {
-	data = {} // where car data is stored
-	nextIdx = 0 // index in this.trace to be shown
-	trace = [] // { ts, id, x, y, phi, v }
-	mode = "" // or "rewind"
-
-	setData (id, trajData) { // carId, array[ { ts, x, y, phi, v } ]
-		this.data[id] = trajData;
-		trajData.forEach((entry) => {
-			this.trace.push({ ...entry, id });
-		});
-		this.trace.sort((a, b) => (a.ts - b.ts));
-		this.nextIdx = 0;
-	}
-
-	next() {
-		if (this.trace.length < 1) { console.log("NOTHING TO TRACE!!!"); return; }
-		if (this.nextIdx == this.trace.length) {
-			if (mode !== "rewind") { console.log("END OF TRACE!!!"); return; }
-			else this.nextIdx = 0;
-		}
-
-		const tmpCar = this.trace[this.nextIdx]; // ts, id, x, y, phi, v
-
-		// find car with id = tmpCar.id
-		const _idx = cars.findIndex(c => (c.id === tmpCar.id));
-		if (_idx === -1) {
-			this.nextIdx++;
-			return; // can do nothing
-		}
-		
-		const { ix, iy } = getSectorIndex(cars[_idx]);
-		carsSectors[ix][iy] = carsSectors[ix][iy].filter(x => (x !== _idx)); // removed _idx from carsSectors
-		
-		const newIxIy = getSectorIndex(tmpCar);
-		carsSectors[newIxIy.ix][newIxIy.iy].push(_idx);
-
-		cars[_idx].ts = tmpCar.ts;
-		cars[_idx].x = tmpCar.x; cars[_idx].y = tmpCar.y;
-		cars[_idx].angle = ((tmpCar.phi * Math.PI) / 180.00);
-		cars[_idx].speed = tmpCar.v;
-		
-		const prevShowCars = showCars;
-		showCars = false; // for spoofing since we shall later manually draw the cars
-		clearCanvas();
-		draw();
-		if (prevShowCars) {
-			showCars = true;
-			// now draw all cars except the one with id = tmpCar.id
-			cars.forEach((car) => {
-				if (car.id !== tmpCar.id) drawCar(car);
-			});
-			drawCar(cars[_idx]); // the last one for overlap
-		}
-
-		this.nextIdx++;
-	}
-
-	rewind() {
-		this.nextIdx = 0;
-	}
-}
-
 const delay = ms => new Promise(res => setTimeout(res, ms)); // personalized delay function
 
 class Player {
@@ -854,3 +678,216 @@ class Player {
 }
 
 
+async function simulateAndPlay() {
+	if (isSimAndPlay) return;
+	isSimAndPlay = true;
+	document.getElementById("simStatus").innerHTML = "Simulating...";
+	await fetch("http://127.0.0.1:5000/simulate", {
+		method: "POST",
+		mode: "cors",
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			"waypoints" : WPs.map((p) => { return { x : p.x, y : p.y }; }), // necessary since WPs is Array of SVGPoint
+			"neighbours" : NBs,
+			"cars" : cars,
+			"sectors" : sectors,
+			"carsSectors" : carsSectors,
+		})
+	})
+	.then(resp => resp.json())
+	.then(
+		async (trajData) => {
+			document.getElementById("simStatus").innerHTML = "<b style=\"color: green;\">Now Playing...</b>";
+			// here, enter code to play stuff (awaited playing)
+			pl = new Player();
+			for (_id in trajData) pl.setData(_id, trajData[_id]);
+			pl.interpolate();
+			pl.playRate = parseFloat(document.getElementById("playRate").value.trim());
+			await pl.play();
+			document.getElementById("simStatus").innerHTML = "<b style=\"color: yellow;\">NOTE: You will have to reimport the graph to replay.</b>";
+		},
+		(error) => {
+			document.getElementById("simStatus").innerHTML = "<b style=\"color: red;\">Error in Simulation</b>";
+			console.log(error);
+		}
+	);
+	isSimAndPlay = false;
+}
+
+/**** Don't remove this function does as it keeps track of transforms in he form of a matrix. ****/
+function trackTransforms() {
+
+	// Adds ctx.getTransform() - returns an SVGMatrix
+	// Adds ctx.transformedPoint(x,y) - returns an SVGPoint
+	var svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
+	var xform = svg.createSVGMatrix();
+	ctx.getTransform = function() { return xform; };
+	
+	var savedTransforms = [];
+	var save = ctx.save;
+	ctx.save = function() {
+		savedTransforms.push(xform.translate(0, 0));
+		return save.call(ctx);
+	};
+
+	var restore = ctx.restore;
+	ctx.restore = function() {
+		xform = savedTransforms.pop();
+		return restore.call(ctx);
+	};
+
+	var scale = ctx.scale;
+	ctx.scale = function(sx, sy) {
+		xform = xform.scaleNonUniform(sx, sy);
+		return scale.call(ctx, sx, sy);
+	};
+
+	var rotate = ctx.rotate;
+	ctx.rotate = function(radians) {
+		xform = xform.rotate(radians * 180 / Math.PI);
+		return rotate.call(ctx, radians);
+	};
+
+	var translate = ctx.translate;
+	ctx.translate = function(dx, dy) {
+		xform = xform.translate(dx, dy);
+		return translate.call(ctx, dx, dy);
+	};
+
+	var transform = ctx.transform;
+	ctx.transform = function(a, b, c, d, e, f) {
+		var m2 = svg.createSVGMatrix();
+		m2.a = a; m2.b = b; m2.c = c; m2.d = d; m2.e = e; m2.f = f;
+		xform = xform.multiply(m2);
+		return transform.call(ctx, a, b, c, d, e, f);
+	};
+	
+	var setTransform = ctx.setTransform;
+	ctx.setTransform = function(a, b, c, d, e, f) {
+		xform.a = a; xform.b = b;	xform.c = c; xform.d = d; xform.e = e; xform.f = f;
+		return setTransform.call(ctx, a, b, c, d, e, f);
+	};
+
+	var pt = svg.createSVGPoint();
+	ctx.transformedPoint = function(x, y) {
+		pt.x = x; pt.y = y;
+		return pt.matrixTransform(xform.inverse());
+	}
+}
+
+trackTransforms();
+
+// WINDOW ONLOAD (EVENT LISTENER BINDINGS IN THIS FUNCTION)
+window.onload = function () {
+	document.getElementById("nav").checked = true; // default checking of "Navigation" mode
+	document.getElementById("speed").value = 10.00; // default speed
+	document.getElementById("acc").value = 0.00; // default acceleration
+	document.getElementById("angle").value = 0.00; // default angle
+	document.getElementById("carColor").value = "#F00"; // default car color (red)
+	document.getElementById("showCars").checked = true; // defualt "Show Cars"
+	document.getElementById("homeBtn").addEventListener('click', homeTransform, false);
+	document.getElementById("clearBtn").addEventListener('click', clearGraph, false);
+	document.getElementById("importJsonBtn").addEventListener('click', importJson, false);
+	document.getElementById("downloadPngBtn").addEventListener('click', downloadPng, false);
+	document.getElementById("downloadJsonBtn").addEventListener('click', downloadJson, false);
+	document.getElementById("speed").addEventListener('change', (evt) => { speed = parseFloat(evt.target.value.trim()); }, false);
+	document.getElementById("acc").addEventListener('change', (evt) => { acc = parseFloat(evt.target.value.trim()); }, false);
+	document.getElementById("angle").addEventListener('change', (evt) => { angle = parseFloat(evt.target.value.trim()); }, false);
+	document.getElementById("carColor").addEventListener('change', (evt) => { carColor = evt.target.value.trim(); }, false);
+	document.getElementById("showCars").addEventListener('change', () => {
+		showCars = document.getElementById("showCars").checked;
+		clearCanvas();
+		draw();
+	}, false);
+	document.getElementById("darkMode").addEventListener('change', () => {
+		useDarkMode = document.getElementById("darkMode").checked;
+		const modeName = useDarkMode ? "dark" : "light";
+		document.body.style.backgroundColor = docBgClr[modeName];
+		document.body.style.color = docTxtClr[modeName];
+		canvas.style.backgroundColor = canvasBgClr[modeName];
+	}, false);
+	document.getElementById("darkMode").checked = false;
+	document.getElementById("darkMode").click();
+	// radio mode changer
+	document.querySelectorAll('input[type=radio][name="mode"]').forEach(radio => {
+		radio.addEventListener('change', () => { mode = radio.value; });
+	});
+	document.getElementById("playBtn").addEventListener('click', simulateAndPlay, false);
+}
+
+window.onbeforeunload = function() { // not satisfactory
+	return "Are you sure you wish to leave? Graph cannot be retrieved. Type \"YES\" to leave (won't leave if you type otherwise):";
+}
+
+window.onresize = function() {
+	clearCanvas();
+	canvas.width = window.innerWidth * 0.85; canvas.height = window.innerHeight * 0.85;
+	draw();
+}
+
+/**********************************************/
+/********** BEGIN ACTUAL CODING HERE **********/
+/**********************************************/
+
+class Tracer {
+	data = {} // where car data is stored
+	nextIdx = 0 // index in this.trace to be shown
+	trace = [] // { ts, id, x, y, phi, v }
+	mode = "" // or "rewind"
+
+	setData (id, trajData) { // carId, array[ { ts, x, y, phi, v } ]
+		this.data[id] = trajData;
+		trajData.forEach((entry) => {
+			this.trace.push({ ...entry, id });
+		});
+		this.trace.sort((a, b) => (a.ts - b.ts));
+		this.nextIdx = 0;
+	}
+
+	next() {
+		if (this.trace.length < 1) { console.log("NOTHING TO TRACE!!!"); return; }
+		if (this.nextIdx == this.trace.length) {
+			if (mode !== "rewind") { console.log("END OF TRACE!!!"); return; }
+			else this.nextIdx = 0;
+		}
+
+		const tmpCar = this.trace[this.nextIdx]; // ts, id, x, y, phi, v
+
+		// find car with id = tmpCar.id
+		const _idx = cars.findIndex(c => (c.id === tmpCar.id));
+		if (_idx === -1) {
+			this.nextIdx++;
+			return; // can do nothing
+		}
+		
+		const { ix, iy } = getSectorIndex(cars[_idx]);
+		carsSectors[ix][iy] = carsSectors[ix][iy].filter(x => (x !== _idx)); // removed _idx from carsSectors
+		
+		const newIxIy = getSectorIndex(tmpCar);
+		carsSectors[newIxIy.ix][newIxIy.iy].push(_idx);
+
+		cars[_idx].ts = tmpCar.ts;
+		cars[_idx].x = tmpCar.x; cars[_idx].y = tmpCar.y;
+		cars[_idx].angle = ((tmpCar.phi * Math.PI) / 180.00);
+		cars[_idx].speed = tmpCar.v;
+		
+		const prevShowCars = showCars;
+		showCars = false; // for spoofing since we shall later manually draw the cars
+		clearCanvas();
+		draw();
+		if (prevShowCars) {
+			showCars = true;
+			// now draw all cars except the one with id = tmpCar.id
+			cars.forEach((car) => {
+				if (car.id !== tmpCar.id) drawCar(car);
+			});
+			drawCar(cars[_idx]); // the last one for overlap
+		}
+
+		this.nextIdx++;
+	}
+
+	rewind() {
+		this.nextIdx = 0;
+	}
+}
