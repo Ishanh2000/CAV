@@ -14,6 +14,10 @@ rho = 200 # milliseconds (worst end to end delay)
 d_th = 0.63 # metres
 S : Server = None # will initialize later
 DEST_REACH_THRESHOLD = 0.7 # m
+L = 2 # vehicle length (metres)
+PID_ITERS = 10
+kP_a, kI_a, kD_a = 5, 1, 0.1
+kP_psi, kI_psi, kD_psi = 5, 1, 0.1
 
 # Average computing times (Poisson distribution) in microseconds (us)
 poi_avg = {

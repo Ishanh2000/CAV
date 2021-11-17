@@ -37,7 +37,7 @@ var dragStart, dragged;
 var totalZooms = 0;
 var mode = "nav";
 var edgeStart = -1; // index in WPs of the node which is start of an edge in progress
-var speed = 10.0, acc = 0.0, accBrake; // m/s, m/s2, m/s2
+var speed = 10.0, acc = 0.0, accBrake = -10.0; // m/s, m/s2, m/s2
 var angle = 0.00;
 var carColor = "#F00";
 var showCars = true;
@@ -123,6 +123,7 @@ function draw() {
 	ctx.font = destCarIdFont;
 	if (showCars) cars.forEach(car => {
 		if (car.dest === null) return;
+		if (car.dest < 0) return;
 		ctx.save();
     ctx.beginPath();
     ctx.translate(WPs[car.dest].x, WPs[car.dest].y);

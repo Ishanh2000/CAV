@@ -42,7 +42,6 @@ class CAV:
     self.ID = car["id"]
     self.dest = car["dest"]
     self.x, self.y = (car["x"]/100), (car["y"]/100) # LHS is metres
-    print(self.x, self.y)
     closest_dist, l_WPs = float('inf'), len(config.WPs)
     for i in range(l_WPs):
       d = dist({ "x" : (self.x * 100), "y" : (self.y * 100) }, config.WPs[i])
@@ -65,14 +64,14 @@ class CAV:
   
   def __del__(self):
     """ Destructor """
-    if not self.logFile.closed:
+    if self.logFile and not self.logFile.closed:
       self.logFile.write("\nExiting...\n")
       self.logFile.close()
 
-    if not self.trajFile.closed:
+    if self.trajFile and not self.trajFile.closed:
       self.trajFile.close()
     
-    if not self.trajFileJson.closed:
+    if self.trajFileJson and not self.trajFileJson.closed:
       self.trajFileJson.write("\n]")
       self.trajFileJson.close()
 
@@ -296,11 +295,70 @@ class CAV:
     self.timestamp += poisson(config.poi_avg["construct_CDG"])
     self.logFile.write(f"\nCDG\n{self.CDG}\n")
 
+  def DFS(self, CDG, visited, parent, start, n):
+    """ Depth First Search (DFS) to detect only ONE cycle """
+
+    visited[start] = -1
+    cycle = []
+    # flag = 0
+    for i in range(n):
+      if CDG[start][i] == True:
+        if visited[i] == 0:
+          parent[i] = start
+          cycle = self.DFS(CDG, visited, parent, i, n)
+          if cycle != []: return cycle
+        elif visited[i] == -1: # cycle detected
+          j = start
+          while(parent[j]!=i):
+            cycle.append(j)
+            j = parent[j]
+          cycle.append(j)
+          cycle.append(i)
+          return cycle
+
+    visited[start] = 1
+    return cycle
+
+  def findCycles(self, CDG):
+    """ Finding cycle: Function is expected to find exactly one cycle and return the nodes invovled in the cycle """
+
+    n = np.array(CDG).shape[0]
+    visited, parent = np.zeros(n), np.arange(n)
+
+    for start in range(int(n/n-1)):
+      if visited[start] == 0:
+        cycle = self.DFS(CDG, visited, parent, start, n)
+        print("Cyle: ", cycle)
+        if(cycle != []):
+          return cycle
+
+    return []
+
+  def resolveCycle(self, CDG, cycle, averagedTOA):
+    min_time, leader = averagedTOA[cycle[0]], cycle[0]
+    for vehicle in cycle:
+      if averagedTOA[vehicle] < min_time: min_time, leader = averagedTOA[vehicle], vehicle
+    
+    n = CDG.shape[0]
+    for i in range(n):
+      if CDG[i][leader]: CDG[i][leader], CDG[leader][i] = False, True
+    
+    return CDG
+
+  def ResolveDeadlock(self, averaged_TOA=[]):
+    cycles = self.findCycles(self.CDG)
+
+    while cycles != []:
+      self.resolveCycle(self.CDG, cycles, averaged_TOA)
+      cycles = self.findCycles(self.CDG)
+
+    return self.CDG
+
   def deadlock_resolution(self):
     """ Detect any deadlocks found in `self.CDG` and resolve them usign DFS. Will complete this later. """
-    # TODO: Complete this later.
+
+    self.ResolveDeadlock()
     self.timestamp += poisson(config.poi_avg["deadlock_resolution"])
-    self.logFile.write(f"\nUseless Deadlock Resolution.\n")
 
   def motion_planner(self):
     """ Very basic motion planning: simpl computing safe velocities """
@@ -333,6 +391,42 @@ class CAV:
     self.timestamp += poisson(config.poi_avg["motion_planner"])
     self.logFile.write(f"\nv_safe\n{self.v_safe}\n")
 
+  def PID(self, t=0):
+    """ Simulate PID controller and vehicle (plant) for time `t` """
+
+    if t == 0: return
+    
+    v_ref, phi_ref = self.v, self.phi
+    dt = (t / config.PID_ITERS) / 1e6 # t is in microseconds (us)
+
+    for _ in range(config.PID_ITERS):
+      ev, ephi = (v_ref - self.v), (phi_ref - self.phi)
+      ev_dot, ephi_dot = ((ev-self.v) / dt), ((ephi-self.phi) / dt)
+      ev_sum, ephi_sum = (self.v + (ev * dt)), (self.phi + (ephi * dt))
+
+      a, psi = self.a, self.psi
+
+      self.a = (config.kP_a * ev) + (config.kI_a * ev_sum) + (config.kD_a * ev_dot)
+      if self.a < (-self.a_max): self.a = -self.a_max
+      elif self.a > self.a_max: self.a = self.a_max
+      self.psi = (config.kP_psi * ev) + (config.kI_psi * ephi_sum) + (config.kD_psi * ephi_dot)
+      if self.psi < (-np.pi/8): self.psi = -np.pi/8
+      elif self.psi > (np.pi/8): self.psi = np.pi/8
+
+      x = self.x + (self.v * np.cos(self.phi) * dt)
+      y = self.y + (self.v * np.sin(self.phi) * dt)
+      phi = self.phi + (self.v * np.tan(psi) * dt / config.L)
+      v = self.v + (a * dt)
+      if v < 0: v = 0
+      # self.x, self.y, self.phi, self.v = x, y, phi, v
+
+      x = self.x + (self.v * np.cos(self.phi) * dt)
+      y = self.y + (self.v * np.sin(self.phi) * dt)
+      phi = phi_ref
+      v = v_ref
+      if v < 0: v = 0
+      self.x, self.y, self.phi, self.v = x, y, phi, v
+
   def motion_controller(self):
     """ Determine current `self.x` and `self.y`. Compute and save next `self.v` and `self.phi` """
 
@@ -340,9 +434,7 @@ class CAV:
     dt = self.timestamp - self.lastMcTs # us
     self.lastMcTs = self.timestamp
 
-    # TODO: Using PID controller, predict self.x, self.y, self.a, self.phi, self.psi
-    self.x += (self.v * np.cos(self.phi) * dt) / (10**6)
-    self.y += (self.v * np.sin(self.phi) * dt) / (10**6)
+    self.PID(dt)
     
     l_FP =  len(self.FP)
     cfp_i, d = None, float('inf') # closest FP index and its distance
