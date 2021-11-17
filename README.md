@@ -31,8 +31,8 @@ This had been a private repository till November 17, 2021. It has later been mad
 
 ### Video Demonstrations
 The following video demonstrations may help you understand how the graphing tool works:
-- [How to use the Graphing Tool]()
-- [Demonstration of Cases]()
+- [How to use the Graphing Tool](https://1drv.ms/v/s!ApA9gmreFg4nhrtSd_S5C40-5zSUFQ?e=3jFtfp)
+- [Demonstration of Cases](https://1drv.ms/v/s!ApA9gmreFg4nhrtT8f0q_NxOtF_cbw?e=bpY1Xr)
 
 The files in "samples" folder are:
 - **straight_1.json** : Straight road, one vehicle.
