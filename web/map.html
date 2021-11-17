@@ -53,18 +53,23 @@
 		<canvas id="cav_canvas"></canvas>
 	</center>
 	<center>
-		Speed (m/s)
+		Speed<sub>MAX</sub> (m/s)
 		<input type="number" name="speed" id="speed" min="0.01" step="0.01" value="10.00" style="width:5rem;" />
 		&emsp;&emsp;
 		
-		Acceleration (m/s)
-		<input type="number" name="acc" id="acc" min="-100.00" step="100.00" value="0.00" style="width:5rem;" />
+		Acc<sub>MAX</sub> (m/s<sup>2</sup>)
+		<input type="number" name="acc" id="acc" min="0.01" step="0.01" value="10.00" style="width:5rem;" />
+		&emsp;&emsp;
+
+		Acc<sub>BRAKE</sub> (m/s<sup>2</sup>)
+		<input type="number" name="accBrake" id="accBrake" min="-100.00" max="-0.01" step="0.01" value="-10.00" style="width:5rem;" />
 		&emsp;&emsp;
 		
 		Car Angle (degrees)
 		<input type="number" name="angle" id="angle" min="-180.00" max="179.99" step="0.01" value="0.00" style="width:5rem;" />
-		&emsp;&emsp;
 		
+		<br /><br />
+
 		Car Color
 		<select id="carColor" name="carColor" value="0.00" style="width:10rem;" >
 			<option value="#F00">(#F00) Red</option>

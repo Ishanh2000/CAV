@@ -37,7 +37,7 @@ var dragStart, dragged;
 var totalZooms = 0;
 var mode = "nav";
 var edgeStart = -1; // index in WPs of the node which is start of an edge in progress
-var speed = 10.0, acc = 0.0; // m/s, m/s2
+var speed = 10.0, acc = 0.0, accBrake; // m/s, m/s2, m/s2
 var angle = 0.00;
 var carColor = "#F00";
 var showCars = true;
@@ -112,7 +112,7 @@ function drawCar(car) {
 	ctx.font = carIdFont;
 	ctx.strokeText(`${car.id}`, -15, -30);
 	ctx.font = carDetailsFont;
-	if (car.ts) ctx.strokeText(`${car.ts.toFixed(0)} ms`, -15, 30);
+	// if (car.ts) ctx.strokeText(`${car.ts.toFixed(0)} ms`, -15, 30);
 	ctx.strokeText(`${car.speed.toFixed(2)} m/s`, -15, 60);
 	ctx.restore(); // restore the context to its untranslated/unrotated state
 }
@@ -347,7 +347,7 @@ function doubleClickHandler(evt) {
 		else {
 			const car = {
 				id: carId++, color: carColor, dest: null,
-				x : p.x, y : p.y, angle: ((angle * Math.PI) / 180.00), speed, acc
+				x : p.x, y : p.y, angle: ((angle * Math.PI) / 180.00), speed, acc, accBrake
 			};
 			carsSectors[ix][iy].push(cars.length); // push index of car inside relevant sector
 			cars.push(car);
@@ -607,6 +607,8 @@ class Player {
 	async play() {
 		const l_frames = this.frames.length;
 		for (let i = 0; i < l_frames; i++) {
+			document.getElementById("simStatus").innerHTML = "<b style=\"color: green;\">Now Playing...</b>&emsp;<b>(t = " + (i*this.frameSize/1000.0).toFixed(3) + " s)</b>";
+
 			// if (i > 200) return;
 			for (let id in this.frames[i]) {
 				const tmpCar = this.frames[i][id]; // { x, y, phi, v }
@@ -679,6 +681,10 @@ class Player {
 
 
 async function simulateAndPlay() {
+	var confirmClear = window.prompt("Simulation will change location of cars, and their initial locations will be lost. "
+	+ "It is advised to download the graph first.\n\nType \"YES\" to proceed with simulation (won't proceed if you type otherwise):");
+	if (confirmClear !== "YES") return;
+
 	if (isSimAndPlay) return;
 	isSimAndPlay = true;
 	document.getElementById("simStatus").innerHTML = "Simulating...";
@@ -704,7 +710,7 @@ async function simulateAndPlay() {
 			pl.interpolate();
 			pl.playRate = parseFloat(document.getElementById("playRate").value.trim());
 			await pl.play();
-			document.getElementById("simStatus").innerHTML = "<b style=\"color: yellow;\">NOTE: You will have to reimport the graph to replay.</b>";
+			// document.getElementById("simStatus").innerHTML = "<b style=\"color: yellow;\">NOTE: You will have to re-import the graph to replay.</b>";
 		},
 		(error) => {
 			document.getElementById("simStatus").innerHTML = "<b style=\"color: red;\">Error in Simulation</b>";
@@ -792,6 +798,7 @@ window.onload = function () {
 	document.getElementById("downloadJsonBtn").addEventListener('click', downloadJson, false);
 	document.getElementById("speed").addEventListener('change', (evt) => { speed = parseFloat(evt.target.value.trim()); }, false);
 	document.getElementById("acc").addEventListener('change', (evt) => { acc = parseFloat(evt.target.value.trim()); }, false);
+	document.getElementById("accBrake").addEventListener('change', (evt) => { accBrake = parseFloat(evt.target.value.trim()); }, false);
 	document.getElementById("angle").addEventListener('change', (evt) => { angle = parseFloat(evt.target.value.trim()); }, false);
 	document.getElementById("carColor").addEventListener('change', (evt) => { carColor = evt.target.value.trim(); }, false);
 	document.getElementById("showCars").addEventListener('change', () => {

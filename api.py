@@ -35,26 +35,19 @@ def simulate():
     CAVs, l_cars = [], len(config.cars)
     for car in config.cars: # Initialize
       cav = CAV(car)
-      # cav.a_brake, cav.v_max = -10, 10
-      cav.a_brake, cav.v_max = -10, (15 if (car["id"] == 0) else 2) # straight_2_block: second is immovable (do not allow to reach dest)
-      # cav.a_brake, cav.v_max = -10, (10 if (car["id"] == 0) else 5) # straight_2: second is slower
-      # cav.a_brake, cav.v_max = -10, (15 if (car["id"] == 0) else 2) # sharp_curve_2: second is slower
       CAVs.append(cav)
 
     for i in range(l_cars): # Start
       CAVs[i].thread.start()
+    
+    trajData = {} # trajectories
 
     for i in range(l_cars): # Wait for End
       CAVs[i].thread.join()
       CAVs[i].__del__()
+      with open(f"logFiles/CAV_{CAVs[i].ID}_traj.json") as f: trajData[f"{CAVs[i].ID}"] = json.load(f)
 
     print("\n######## CAV EXECUTION STOPS #########\n")
-
-    trajData = {} # trajectories (JSON string)
-    for i in range(l_cars):
-      with open(f"logFiles/CAV_{CAVs[i].ID}_traj.json") as f:
-        print(f"logFiles/CAV_{CAVs[i].ID}_traj.json")
-        trajData[f"{CAVs[i].ID}"] = json.load(f)
 
     return trajData
 

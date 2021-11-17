@@ -27,10 +27,10 @@ class CAV:
 
   # Dynamics Related Members
   x, y = None, None # m
-  phi = None # radians
-  v, v_max, v_safe = None, None, None # m/s  (check if v_max is parameter)
+  phi, psi = None, None # heading and steering angle (radians)
+  v, v_max, v_safe = None, None, None # m/s
   a_brake = None # m/s2
-  a, a_max = None, None # m/s2 ### @USELESS ###
+  a, a_max = None, None # m/s2
   lastMcTs = None # us
 
   Others_Info, Others_PDG = None, None # will be dictionary with CAV IDs as keys
@@ -42,7 +42,7 @@ class CAV:
     self.ID = car["id"]
     self.dest = car["dest"]
     self.x, self.y = (car["x"]/100), (car["y"]/100) # LHS is metres
-
+    print(self.x, self.y)
     closest_dist, l_WPs = float('inf'), len(config.WPs)
     for i in range(l_WPs):
       d = dist({ "x" : (self.x * 100), "y" : (self.y * 100) }, config.WPs[i])
@@ -51,7 +51,8 @@ class CAV:
         closest_dist = d
     self.find_shortest_path() # computes `self.SP` from `self.lookAhead` and `self.dest`
 
-    self.phi, self.v, self.a = car["angle"], 0, 0 # removed car["speed"], car["acc"]
+    self.v, self.a, self.phi, self.psi = 0, 0, car["angle"], 0
+    self.v_max, self.a_max, self.a_brake = car["speed"], car["acc"], car["accBrake"]
     self.timestamp = self.lastMcTs = poisson(config.poi_avg["boot_time"])
     self.thread = Thread(target = self.execute)
     self.logFile = open(f"./logFiles/CAV_{self.ID}.txt", "w")
@@ -338,6 +339,8 @@ class CAV:
     self.timestamp += poisson(config.poi_avg["motion_controller"])
     dt = self.timestamp - self.lastMcTs # us
     self.lastMcTs = self.timestamp
+
+    # TODO: Using PID controller, predict self.x, self.y, self.a, self.phi, self.psi
     self.x += (self.v * np.cos(self.phi) * dt) / (10**6)
     self.y += (self.v * np.sin(self.phi) * dt) / (10**6)
     

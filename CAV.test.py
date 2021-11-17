@@ -156,10 +156,6 @@ def test_cav_execute():
   CAVs, l_cars = [], len(config.cars)  
   for car in config.cars: # Initiialize
     cav = CAV(car)
-    # cav.a_brake, cav.v_max = -10, 10
-    # cav.a_brake, cav.v_max = -10, (15 if (car["id"] == 0) else 2) # straight_2_block: second is immovable (do not allow to reach dest)
-    # cav.a_brake, cav.v_max = -10, (10 if (car["id"] == 0) else 5) # straight_2: second is slower
-    cav.a_brake, cav.v_max = -10, (15 if (car["id"] == 0) else 2) # sharp_curve_2: second is slower
     CAVs.append(cav)
   
   for i in range(l_cars): # Start
@@ -174,7 +170,11 @@ def test_cav_execute():
 
 if __name__ == "__main__":
   
-  # straight_1,  curve_1, sharp_curve_1, straight_2, sharp_curve_2, straight_2_block
+  # straight_1, curve_1, sharp_curve_1
+  # straight_2_block: second is immovable (do not allow to reach dest)
+  # straight_2: second is slower
+  # sharp_curve_2: second is slower
+  
   config.importParentGraph(os.path.join(os.getcwd(), "samples/sharp_curve_2.json"))
   config.startServer() # config.S is now the functioning server
 
